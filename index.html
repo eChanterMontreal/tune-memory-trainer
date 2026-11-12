@@ -108,7 +108,7 @@ header{justify-content:space-between;align-items:center}
 </head>
 <body>
 <header>
-  <div class="hdr-l"><h1>Tune Memory Trainer</h1><span class="sub" id="libInfo"></span></div>
+  <div class="hdr-l"><h1>Tune Memory Trainer <small style="font-size:11px;font-weight:400;opacity:.55">v1.2</small></h1><span class="sub" id="libInfo"></span></div>
   <div class="hdr-r">
     <button class="btn small hidden" id="installBtn"></button>
     <select class="lang" id="langSel" aria-label="Language"><option value="es">ES</option><option value="en">EN</option><option value="fr">FR</option></select>
@@ -887,6 +887,6 @@ $('modes').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.
   if ('serviceWorker' in navigator && /^https:/.test(location.protocol) && /\.github\.io$/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 </script>
-<div id="appVersion" style="text-align:center;font-size:11px;opacity:.5;padding:16px 0 24px;color:var(--ink)">v1.1 · 2026-11-12</div>
+<div id="appVersion" style="text-align:center;font-size:11px;opacity:.5;padding:16px 0 24px;color:var(--ink)">v1.2 · 2026-11-12</div>
 </body>
 </html>
