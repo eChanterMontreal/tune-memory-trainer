@@ -565,6 +565,18 @@ const RATIO = {LG:7/8, LA:1, B:9/8, C:5/4, D:4/3, E:3/2, F:5/3, HG:7/4, HA:2};
 const LA_HZ = 480;
 let AC = null, live = [], timers = [];
 function ac(){ if (!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); if (AC.state==='suspended') AC.resume(); return AC; }
+// iOS: play sound even when the silent switch is on
+let _iosUnlocked=false;
+function unlockIOSAudio(){
+  if (_iosUnlocked) return; _iosUnlocked=true;
+  try { if (navigator.audioSession) navigator.audioSession.type='playback'; } catch(e){}
+  try {
+    const a=new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+    a.loop=true; a.setAttribute('playsinline',''); a.play().catch(()=>{});
+  } catch(e){}
+  try { ac(); } catch(e){}
+}
+['touchstart','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockIOSAudio,{capture:true,passive:true}));
 function stopAll(){
   live.forEach(n => { try{ n.stop(); }catch(e){} }); live = [];
   timers.forEach(clearTimeout); timers = [];
