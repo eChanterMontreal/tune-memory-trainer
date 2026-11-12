@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tune Memory Trainer</title>
+<meta name="description" content="Memoriza el arranque de las tunes de gaita: de oído, leyendo la partitura y reconociendo el tiempo.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Tune Memory Trainer · Bagpipes">
+<meta property="og:description" content="Aprende el arranque de cada tune: de oído, por partitura y por tiempo. ES · EN · FR">
+<meta property="og:image" content="https://echantermontreal.github.io/tune-memory-trainer/og.png">
+<meta property="og:url" content="https://echantermontreal.github.io/tune-memory-trainer/">
+<meta name="theme-color" content="#14231c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f4f1ea; --card:#fffdf8; --ink:#1d2420; --muted:#6b726c; --line:#ddd6c8;
+  --accent:#1f5c45; --accent2:#a8322d; --ok:#2e7d4f; --bad:#b3362f; --hl:#c98a12;
+  --chip:#ece6d9;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#111814; --card:#18211c; --ink:#ece8de; --muted:#9aa39c; --line:#2c3831;
+    --accent:#5fbf93; --accent2:#e2706a; --ok:#5fbf93; --bad:#e2706a; --hl:#f0b43c; --chip:#22302a; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit}
+header{padding:14px 16px 8px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+header h1{margin:0;font:700 20px/1.1 Georgia,"Times New Roman",serif;letter-spacing:.2px}
+header .sub{color:var(--muted);font-size:13px}
+main{max-width:760px;margin:0 auto;padding:0 12px 96px}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);z-index:10;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;border:0;background:none;padding:10px 4px 12px;font-size:13px;color:var(--muted);cursor:pointer}
+nav.tabs button .ic{display:block;font-size:19px;line-height:1.2}
+nav.tabs button.on{color:var(--accent);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.modes{display:flex;gap:6px;overflow-x:auto;padding:4px 0 2px;scrollbar-width:none}
+.modes button{border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:7px 13px;white-space:nowrap;cursor:pointer;font-size:14px}
+.modes button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.score-line{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin:6px 2px 0}
+.prompt{font-size:15px;color:var(--muted);margin:2px 0 10px}
+.big-play{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:22px;border-radius:14px;border:0;background:var(--accent);color:#fff;font-size:18px;font-weight:600;cursor:pointer}
+.big-play:active{transform:scale(.99)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--chip);border-radius:10px;padding:9px 14px;cursor:pointer;font-size:15px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.small{padding:6px 10px;font-size:13px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+@media (max-width:420px){.opts{grid-template-columns:1fr}}
+.opt{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:13px 12px;text-align:left;cursor:pointer;font-size:16px;min-height:52px}
+.opt:hover{border-color:var(--accent)}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--card))}
+.opt[disabled]{cursor:default}
+.fb{font-weight:700;font-size:17px;margin:12px 0 4px}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.reveal h3{margin:4px 0 0;font:700 20px/1.2 Georgia,serif}
+.reveal .meta{color:var(--muted);font-size:13px;margin-bottom:4px}
+.staff{width:100%;overflow-x:auto;margin:6px 0}
+.staff svg{display:block;min-width:340px;width:100%;height:auto}
+.staff .n{cursor:pointer}
+.staff .n.on .hd{fill:var(--hl);stroke:var(--hl)}
+.staff .n.on .nm{fill:var(--hl);font-weight:700}
+.seq{font:600 15px/1.6 ui-monospace,Consolas,monospace;letter-spacing:.3px;word-spacing:2px;color:var(--ink);background:var(--chip);border-radius:8px;padding:6px 10px;margin:6px 0}
+.seq .bar{color:var(--muted);font-weight:400}
+.hint{color:var(--muted);font-size:13px}
+.lib-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.lib-item:last-child{border-bottom:0}
+.lib-item .t{font-weight:600}
+.lib-item .m{color:var(--muted);font-size:12.5px}
+.pill{font-size:11.5px;border-radius:999px;padding:2px 8px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.pill.local{background:color-mix(in srgb,var(--accent) 18%,var(--card));color:var(--accent)}
+.bar-wrap{height:8px;background:var(--chip);border-radius:6px;overflow:hidden;min-width:70px}
+.bar-fill{height:100%;background:var(--accent)}
+table.st{width:100%;border-collapse:collapse;font-size:14px}
+table.st td{padding:7px 4px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.st td.num{text-align:right;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi{background:var(--chip);border-radius:10px;padding:10px;text-align:center}
+.kpi b{display:block;font-size:22px}
+.kpi span{font-size:12px;color:var(--muted)}
+label.set{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+label.set:last-child{border-bottom:0}
+select,input[type=range]{font:inherit}
+.hidden{display:none!important}
+h2{font:700 17px/1.2 Georgia,serif;margin:4px 0 8px}
+.recall-title{font:700 26px/1.2 Georgia,serif;text-align:center;margin:18px 0 6px}
+.center{text-align:center}
+.err{color:var(--bad);font-size:13px}
+header{justify-content:space-between;align-items:center}
+.hdr-l{display:flex;flex-direction:column;gap:2px}
+.hdr-r{display:flex;gap:6px;align-items:center}
+.lang{border:1px solid var(--line);background:var(--chip);border-radius:8px;padding:5px 6px;font-size:13px;color:var(--ink)}
+.search{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;margin-bottom:8px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.chips button{border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer}
+.chips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.grp-h{font:700 14px/1 Georgia,serif;color:var(--accent);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.6px}
+.lib-item .sq{font:600 12px/1.4 ui-monospace,Consolas,monospace;color:var(--muted);margin-top:2px}
+.lib-item.open{background:var(--chip);border-radius:10px}
+.lib-detail{padding:4px 2px 12px;border-bottom:1px solid var(--line)}
+.meter-opts .opt{text-align:center;font:700 22px/1 Georgia,serif}
+.tip{background:var(--chip);border-radius:10px;padding:10px 12px;font-size:14px;margin:8px 0}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-l"><h1>Tune Memory Trainer</h1><span class="sub" id="libInfo"></span></div>
+  <div class="hdr-r">
+    <button class="btn small hidden" id="installBtn"></button>
+    <select class="lang" id="langSel" aria-label="Language"><option value="es">ES</option><option value="en">EN</option><option value="fr">FR</option></select>
+  </div>
+</header>
+<main>
+  <section id="v-practice">
+    <div class="modes" id="modes">
+      <button data-m="audio"></button><button data-m="visual"></button><button data-m="combo"></button><button data-m="recall"></button><button data-m="meter"></button>
+    </div>
+    <div class="score-line"><span id="sess"></span><span id="streak"></span></div>
+    <div class="card" id="qcard"></div>
+  </section>
+
+  <section id="v-library" class="hidden">
+    <div class="card">
+      <h2 data-t="repTitle"></h2>
+      <input class="search" id="libSearch" type="search">
+      <div class="chips" id="libChips"></div>
+      <div id="libList"></div>
+      <p class="hint" id="libSource" style="margin-top:12px"></p>
+    </div>
+    <div class="card">
+      <h2 data-t="addTitle"></h2>
+      <p class="hint" data-t="addHint"></p>
+      <div class="row"><input type="file" id="fileIn" accept=".bww,.bmw,text/plain" multiple></div>
+      <div id="addMsg" class="hint"></div>
+    </div>
+  </section>
+
+  <section id="v-stats" class="hidden">
+    <div class="card"><div class="kpis" id="kpis"></div></div>
+    <div class="card"><h2 data-t="confTitle"></h2><div id="confList"></div></div>
+    <div class="card"><h2 data-t="simTitle"></h2><p class="hint" data-t="simHint"></p><div id="simList"></div></div>
+    <div class="card"><h2 data-t="perTune"></h2><table class="st" id="perTune"></table></div>
+  </section>
+
+  <section id="v-settings" class="hidden">
+    <div class="card">
+      <h2 data-t="setTitle"></h2>
+      <label class="set"><span data-t="setLang"></span>
+        <select id="setLang"><option value="es">Español</option><option value="en">English</option><option value="fr">Français</option></select></label>
+      <label class="set"><span data-t="setBars"></span>
+        <select id="setBars"><option value="2"></option><option value="4"></option></select></label>
+      <label class="set"><span data-t="setSpeed"></span><span class="row"><input type="range" id="setSpeed" min="0.6" max="1.4" step="0.05"><span id="speedVal" class="hint"></span></span></label>
+      <label class="set"><span data-t="setDrones"></span><input type="checkbox" id="setDrones"></label>
+      <label class="set"><span data-t="setGrace"></span><input type="checkbox" id="setGrace"></label>
+      <label class="set"><span data-t="setHard"></span><input type="checkbox" id="setHard"></label>
+    </div>
+    <div class="card">
+      <h2 data-t="appTitle"></h2>
+      <div class="row"><button class="btn primary hidden" id="installBtn2"></button><button class="btn" id="shareBtn"></button></div>
+      <p class="hint" data-t="installHint"></p>
+    </div>
+    <div class="card">
+      <h2 data-t="dataTitle"></h2>
+      <div class="row"><button class="btn" id="resetStats"></button></div>
+      <p class="hint" data-t="dataHint"></p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" id="tabs">
+  <button data-v="practice" class="on"><span class="ic">▶</span><span data-t="tabPractice"></span></button>
+  <button data-v="library"><span class="ic">♫</span><span data-t="tabRep"></span></button>
+  <button data-v="stats"><span class="ic">▤</span><span data-t="tabStats"></span></button>
+  <button data-v="settings"><span class="ic">⚙</span><span data-t="tabSettings"></span></button>
+</nav>
+
+<script>
+// ===== BWW parser: extracts title, type, time signature, tempo and the intro (pickup + N full bars) =====
+const BWW = (() => {
+  const NOTE_RE = /^(LG|LA|B|C|D|E|F|HG|HA)([rl]?)_(1|2|4|8|16|32)$/;
+  const DOT_RE = /^('{1,2})(lg|la|b|c|d|e|f|hg|ha)$/;
+  // Gracenote / embellishment table (pitches played before the melody note)
+  const G = {
+    gg:['HG'], tg:['HA'], eg:['E'], dg:['D'], cg:['C'], bg:['B'], ag:['LA'], fg:['F'], hg:['HG'],
+    strlg:['LG'], strla:['LA'], strb:['B'], strc:['C'], strd:['D'], stre:['E'], strf:['F'], strhg:['HG'], strha:['HA'],
+    dblg:['HG','LG','D'], dbla:['HG','LA','D'], dbb:['HG','B','D'], dbc:['HG','C','D'], dbd:['HG','D','E'],
+    dbe:['HG','E','F'], dbf:['HG','F','HG'], dbhg:['HG','F'], dbha:['HA','HG'],
+    hdblg:['LG','D'], hdbla:['LA','D'], hdbb:['B','D'], hdbc:['C','D'], hdbd:['D','E'], hdbe:['E','F'], hdbf:['F','HG'],
+    tdblg:['HA','LG','D'], tdbla:['HA','LA','D'], tdbb:['HA','B','D'], tdbc:['HA','C','D'], tdbd:['HA','D','E'], tdbe:['HA','E','F'], tdbf:['HA','F','HG'],
+    grp:['LG','D','LG'], grpb:['LG','B','LG'], hgrp:['D','LG'], hgrpb:['B','LG'], ggrp:['HG','LG','D','LG'], ggrpb:['HG','LG','B','LG'],
+    hgrpc:['D','LG'], ggrpc:['HG','LG','D','LG'], tgrp:['HA','LG','D','LG'],
+    tar:['LG','D','LG','E'], tarb:['LG','B','LG','E'], htar:['D','LG','E'],
+    thrd:['LG','D','C'], hvthrd:['LG','D','LG','C'], hthrd:['D','C'],
+    brl:['LG','LA','LG'], abr:['LA','LG','LA','LG'], gbr:['HG','LA','LG','LA','LG'], tbr:['HA','LA','LG','LA','LG'],
+    gstd:['HG','D','LG'], lgstd:['HG','D','C'], hstd:['D','LG'], lhstd:['D','C'], tstd:['HA','D','LG'],
+    gstb:['HG','B','LG'], gstc:['HG','C','LG'], gste:['HG','E','LA'], gstf:['HG','F','E'],
+    st2la:['LA','LG','LA','LG'], st2b:['B','LG','B','LG'], st2c:['C','LG','C','LG'], st2d:['D','LG','D','LG'],
+    pella:['LA','LG'],
+  };
+  const NAMES = {LG:'Low G',LA:'Low A',B:'B',C:'C',D:'D',E:'E',F:'F',HG:'High G',HA:'High A'};
+
+  function titleCase(s){
+    if (s === s.toUpperCase()) s = s.toLowerCase().replace(/(^|\s|\()(\S)/g,(m,a,b)=>a+b.toUpperCase());
+    return s.replace(/\s+/g,' ').trim();
+  }
+
+  function parse(text, fileName){
+    text = text.replace(/\r/g,'');
+    const lines = text.split('\n');
+    let title = null, type = '', composer = '', tempo = 0;
+    for (const ln of lines){
+      const m = ln.match(/^"(.*)",\(([A-Z]),/);
+      if (m){
+        if (m[2]==='T' && !title) title = m[1];
+        else if (m[2]==='Y' && !type) type = m[1];
+        else if (m[2]==='M' && !composer) composer = m[1];
+      }
+      const t = ln.match(/^TuneTempo,(\d+)/); if (t) tempo = +t[1];
+    }
+    if (!title) title = (fileName||'Tune').replace(/\.bww$/i,'').replace(/_/g,' ');
+    title = titleCase(title.replace(/[’]/g,"'"));
+    // Music: from first '&' line onwards, strip quoted strings / header lines
+    const startIdx = lines.findIndex(l => /^\s*&/.test(l));
+    if (startIdx < 0) throw new Error('No hay música en el archivo');
+    const music = lines.slice(startIdx).filter(l => !/^"/.test(l) && !/^[A-Za-z]+,/.test(l)).join('\n');
+    const toks = music.split(/\s+/).filter(Boolean);
+    let tsNum = 4, tsDen = 4, tsLabel = '4/4', tsFound = false;
+    const bars = []; let cur = [];
+    let pendingGrace = [], tieNext = false, tieOpen = false, tripletOpen = false;
+    let lastNote = null;
+    const flushBar = () => { if (cur.length) { bars.push(cur); cur = []; } };
+    for (const tk of toks){
+      if (!tsFound){
+        let mm = tk.match(/^(\d+)_(\d+)$/);
+        if (mm){ tsNum=+mm[1]; tsDen=+mm[2]; tsLabel=`${tsNum}/${tsDen}`; tsFound=true; continue; }
+        if (tk==='C'){ tsNum=4; tsDen=4; tsLabel='C'; tsFound=true; continue; }
+        if (tk==='C_'){ tsNum=2; tsDen=2; tsLabel='¢'; tsFound=true; continue; }
+      }
+      const n = tk.match(NOTE_RE);
+      if (n){
+        const dur = 1/(+n[3]);
+        const note = { p:n[1], beam:n[2], base:+n[3], dots:0, dur, grace:pendingGrace, tie:false, trip:tripletOpen };
+        if (tripletOpen) note.dur = dur*2/3;
+        if ((tieNext || (tieOpen && lastNote && lastNote.tieChain)) && lastNote && lastNote.p===note.p) note.tie = true;
+        if (tieOpen) note.tieChain = true;
+        tieNext = false; pendingGrace = [];
+        cur.push(note); lastNote = note; continue;
+      }
+      const d = tk.match(DOT_RE);
+      if (d && lastNote){ lastNote.dots = d[1].length; lastNote.dur *= d[1].length===1 ? 1.5 : 1.75; continue; }
+      if (G[tk]){ pendingGrace = pendingGrace.concat(G[tk]); continue; }
+      if (tk==='^ts'){ tieOpen = true; if (lastNote) lastNote.tieChain = false; continue; }
+      if (tk==='^te'){ tieOpen = false; continue; }
+      if (/^\^t(lg|la|b|c|d|e|f|hg|ha)$/.test(tk)){ tieNext = true; continue; }
+      if (tk==='^3s'){ tripletOpen = true; continue; }
+      if (tk==='^3e'){ tripletOpen = false; continue; }
+      if (/^(!|!t|!I|''!I|I!|I!''|!!t)$/.test(tk) || tk==='&'){ flushBar(); continue; }
+      // ignore everything else (sharps, volta marks, spacing, unknown embellishments)
+    }
+    flushBar();
+    const barLen = tsNum/tsDen;
+    const sum = b => b.reduce((s,x)=>s+x.dur,0);
+    return { title, type: titleCase(type||''), composer, tempo, tsNum, tsDen, tsLabel, barLen, bars, sum };
+  }
+
+  // Intro = optional pickup (first bar shorter than a full bar) + nBars full bars
+  function intro(tune, nBars=2){
+    const out = []; let i = 0; let pickup = null;
+    const eps = 1e-6;
+    if (tune.bars.length && tune.sum(tune.bars[0]) < tune.barLen - eps){ pickup = tune.bars[0]; i = 1; }
+    for (; i < tune.bars.length && out.length < nBars; i++) out.push(tune.bars[i]);
+    // a tie at the start of the intro refers to a note we don't show
+    const first = (pickup||out[0]||[])[0]; if (first) first.tie = false;
+    return { pickup, bars: out };
+  }
+
+  // Signature string for comparing intros (pitch sequence of the 2 bars)
+  function signature(it){
+    const all = [].concat(it.pickup||[], ...it.bars);
+    return all.filter(n=>!n.tie).map(n=>n.p).join(' ');
+  }
+  return { parse, intro, signature, NAMES };
+})();
+if (typeof module !== 'undefined') module.exports = BWW;
+
+</script>
+<script>
+const EMBED = [{"file": "Amazing Grace.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Amazing Grace\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"Hymn\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"CCPB Sep-1995\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\r\n& sharpf sharpc 3_4\r\n\r\nI!\tgg LAr_8 Dl_8\t\tlgstd D_4 ^td D_4\r\n!\tgg Fr_8 Er_16 Dl_16\tgg F_4 ^tf F_4\r\n!\tgg Fr_8 El_8\t\tthrd D_4 ^td D_4\r\n!\teg B_4\t\t\tstrlg LA_4 ^tla LA_4\r\n!t\r\n\r\n& sharpf sharpc\tgg LAr_8 Dl_8\t\tlgstd D_4 ^td D_4\r\n!\tgg Fr_8 Er_16 Dl_16\tgg F_4 ^tf F_4\r\n!\tgg Er_8 Fl_8\t\tdbha HA_4 ^tha HA_4 \r\n!\t^tha HA_4\t\tgrp HA_4 ^tha HA_4\r\n!I\r\n\r\n& sharpf sharpc I!\thdbf Fr_8 HAl_8\t\tgg HA_4 ^tha HA_4\r\n!\tFr_8 Er_16 Dl_16\tgg F_4 ^tf F_4\r\n!\tgg Fr_8 El_8\t\tthrd D_4 ^td D_4\r\n!\teg B_4\t\t\tstrlg LA_4 ^tla LA_4\r\n!t\r\n\r\n& sharpf sharpc  '1\tgg LAr_8 Dl_8\t\tlgstd D_4 ^td D_4\r\n!\tgg Fr_8 Er_16 Dl_16\tgg F_4 ^tf F_4\r\n!       E_4 \t\t\tthrd D_4 ^td D_4\r\n!\t^td D_4\t\t\tlgstd D_4 ^td D_4\r\n_' !I\r\n\r\n& sharpf sharpc  '2\tgg LAr_8 Dl_8\t\tlgstd D_4 ^td D_4\r\n!\tgg Fr_8 Er_16 Dl_16\tgg F_4 ^tf F_4\r\n!   \tE_4\t\t\tdbe E_4 ^te E_4\r\n!\t^te E_4\t\t\tthrd D_4 ^td D_4\r\n_' !I\r\n"}, {"file": "Atholl Highlanders.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Atholl Highlanders\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Pipeline Pipe Band\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n& sharpf sharpc 6_8 I!'' gg E_4 'e\t\t\tdbe Er_8 'e Cl_16 dg LAl_8      \r\n!\tdbe Er_8 'e Cl_16 dg LAl_8\tgg Br_8 'b Cl_16 Dl_8   \r\n!\tgg E_4 'e\t\t\tdbe Er_8 'e Cl_16 dg LAl_8      \r\n!\tgg Br_8 'b Cl_16 Dl_8   \tdbc Cr_8 'c Bl_16 strlg LAl_8   !t\r\n\r\n& sharpf sharpc\tgg E_4 'e\t\t\tdbe Er_8 'e Cl_16 dg LAl_8      \r\n!\tdbe Er_8 'e Cl_16 dg LAl_8\tgg Br_8 'b Cl_16 Dl_8   \r\n!\tgg Cr_16 HAr_8 'ha El_8\t  \tdbf Fr_8 'f El_16 Dl_8   \r\n!\tgg Cr_16 Dr_8 'd Bl_8\t\tstrlg LA_4      ''!I\r\n\r\n& sharpf sharpc\tI!''  gg LAr_8 'la dg Cl_16 El_8\tgg LAr_8 'la dg Cl_16 El_8\r\n!\tgg Br_8 'b Dl_16 Fl_8\t\tgg Br_8 'b Dl_16 Fl_8   \r\n!\tgg LAr_8 'la dg Cl_16 El_8\tgg LAr_8 'la dg Cl_16 El_8\r\n!\tgg Br_8 'b Cl_16 Dl_8\t\tdbc Cr_8 'c Bl_16 strlg LAl_8   !t\r\n\r\n& sharpf sharpc\tgg LAr_8 'la dg Cl_16 El_8\tgg LAr_8 'la dg Cl_16 El_8\r\n!\tgg Br_8 'b Dl_16 Fl_8   \tgg Br_8 'b Dl_16 Fl_8   \r\n!\tgg Cr_16 HAr_8 'ha El_8\t\tdbf Fr_8 'f El_16 Dl_8   \r\n!\tgg Cr_16 Dr_8 'd Bl_8\t\tstrlg LA_4      ''!I\r\n"}, {"file": "Auld Lang Syne.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"AULD LANG SYNE\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"Hymn\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Traditional\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\r\n& sharpf sharpc 4_4 I!'' E_8 \t\r\n!\tgg LA_4 ^tla\r\n\tLAr_8 brl LAl_8 \t\r\n\tgg LA_4 \tdg C_4 \t\r\n! \tdbb B_4 ^tb \t\r\n\tBr_8 eg LAl_8 \t\r\n\tgrp B_4 \t\r\n\tdbc Cr_8 'c Bl_16 \t\r\n! \tgg LA_4 ^tla \t\r\n\tLAr_8 brl LAl_8 \t\r\n\tdbc C_4 E_4 \t\r\n! \tdbf F_4 ^tf F_4 \teg F_4 \tgg F_4 \t\r\n!t \t\r\n\r\n& sharpf sharpc \tdbe E_4 ^te \t\r\n\tEr_8 Cl_8 \t\r\n\tdbc C_4 eg LA_4 \t\r\n!\tdbb B_4 ^tb \t\r\n\tBr_8 eg LAl_8 \t\r\n\tgrp B_4 \t\r\n\tdbc Cr_8 'c Bl_16 \t\r\n! \tgg LA_4 ^tla \t\r\n\tLAr_8  Fl_8 \t\r\n\tdbf F_4 \tE_4 \t\r\n! \tgg LA_4 ^tla \tLA_4 \t\r\n\tbrl LA_4 \t\r\n''!I \t\r\n\r\n& sharpf sharpc I!'' HA_8 \t\r\n! \thdbe E_4 ^te \t\r\n\tEr_8 Cl_8 \t\r\n\tdbc C_4 eg LA_4 \t\r\n!\t \tdbb B_4 ^tb \t\r\n\tBr_8 eg LAl_8 \t\r\n\tgrp B_4 \t\r\n\tHA_4 \t\r\n! \thdbe E_4 ^te \t\r\n\tEr_8 Cl_8 \t\r\n\tdbc C_4 \tE_4 \t\r\n! \tdbf F_4 ^tf F_4 \teg F_4 \tgg F_4 \t\r\n!t \t\r\n\r\n& sharpf sharpc \tdbe E_4 ^te \t\r\n\tEr_8 Cl_8 \t\r\n\tdbc C_4 \teg LA_4 \t\r\n!\tdbb B_4 ^tb \t\r\n\tBr_8 eg LAl_8 \t\r\n\tgrp B_4 \t\r\n\tdbc Cr_8 'c Bl_16 \t\r\n! \tgg LA_4 ^tla \t\r\n\tLAr_8  Fl_8 \t\r\n\tdbf F_4 \tE_4 \t\r\n! \tgg LA_4 ^tla \tLA_4 \t\r\n\tbrl LA_4 \t\r\n''!I \r\n"}, {"file": "BarrenRocksOfAden.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\"The Barren Rocks of Aden\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\"\",(F,R,0,0,Times New Roman,12,400,0,0,18,0,0,0)\r\n\r\n\r\n\r\n& sharpf sharpc 2_4 I!'' E_8\r\n!\tgg Fr_8 'f HGl_16\t\t\thdbf Fr_8 'f El_16\r\n!\tthrd Dr_8 gg Fl_8\t\t\tabr LAr_8 thrd Dl_8\r\n!\tdbc Cr_8 El_8\t\t\t\tgbr LAr_8 'la El_16\r\n!\tgg Fr_8 abr LAl_8\t\t\tthrd Dr_8 'd El_16\t\t\t\t!t\r\n\r\n\r\n& sharpf sharpc\tgg Fr_8 'f HGl_16\t\t\thdbf Fr_8 'f El_16\r\n!\tthrd Dr_8 gg Fl_8\t\t\tabr LAr_8 thrd Dl_8\r\n!\tdbc Cr_8 El_8\t\t\t\tgbr LAr_8 gg Fr_16 'f El_32\r\n!\tthrd D_4\t\t\t\t\tlgstd D_8\t\t\t\t\t\t''!I\r\n\r\n\r\n\r\n\r\n& sharpf sharpc I!'' gg Fr_16 'f HGl_32\r\n!\tdbha HAr_8 'ha Fl_16\t\tthrd Dr_8 'd Fl_16\r\n!\tdbe Er_8 gg Fl_8\t\t\tabr LAr_8 gg Er_16 'e Fl_32\r\n!\tdbhg HGr_8 'hg El_16\t\tdbc Cr_8 El_8\r\n!\tthrd Dr_8 gg Fl_8\t\t\tabr LAr_8 gg Fr_16 'f HGl_32\t\t!t\r\n\r\n\r\n& sharpf sharpc\tdbha HAr_8 'ha Fl_16\t\tthrd Dr_8 'd Fl_16\r\n!\tdbe Er_8 gg Fl_8\t\t\tabr LAr_8 gg Er_16 'e Fl_32\r\n!\tdbhg HGr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\t\t\t\tlgstd D_8\t\t\t\t\t\t''!I\r\n"}, {"file": "Battle of Waterloo.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Battle of Waterloo\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Arr. Hamish Moore\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"CYMRU\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n\r\n\r\n& sharpf sharpc 4_4\r\n!\tgg LA_4\t\t\t\ttar LAr_8 dg Bl_8\t\tdbla LAr_8 eg LGl_8\t\tgg LGr_8 dg LAl_8\r\n!\tgrp Cr_8 'c Dl_16\t\tgg Er_8 Cl_8\t\t\tD_4\t\t\t\tgg Er_8 Fr_16 HGl_16\r\n!\tdbha HAr_8 'ha HGl_16\t\ttg Er_8 Dl_8\t\t\tdbe Er_8 Dl_16\t\t\tdbb Br_8 LAl_8\r\n!\tgg LGr_8 'lg dg LGl_16 \t\teg LGr_8 dg LAl_8\t\tdblg LG_4\t\t\tgg Er_8 Dr_16 Bl_16\t\t!t\r\n\r\n& sharpf sharpc\r\n!\tgg LA_4\t\t\t\ttar LAr_8 dg Bl_8\t\tdbla LAr_8 eg LGl_8\t\tgg LGr_8 dg LAl_8\r\n!\tgrp Cr_8 'c Dl_16\t\tgg Er_8 Cl_8\t\t\tD_4\t\t\t\tgg Er_8 Fr_16 HGl_16\r\n!\tdbha HAr_8 'ha HGl_16\t\ttg Er_8 Dl_8\t\t\tdbe Er_8 Dl_16\t\t\tdbb Br_8 LGl_8\r\n!\tgg LA_2\t\t\t\tbrl LA_4\t\t\tgg Er_8 Fr_16 HGl_16\t\t\t\t\t\t!I\r\n\r\n\r\n\r\n& sharpf sharpc\r\n!\tdbha HAr_8 'ha HGl_16\t\ttg Er_8 Dl_8\t\t\tgg Cr_8 'c Dl_16\t\tgg Er_8 Fl_8\r\n!\t^thg HGr_8 'hg HAl_16\t\tHGr_8 El_8\t\t\t^thg HG_4\t\t\ttg Er_8 Fr_16 HGl_16\r\n!\tdbha HAr_8 'ha HGl_16\t\ttg Er_8 Dl_8\t\t\tgg Er_8 'e Dl_16\t\tdbb Br_8 LAl_8\r\n!\tgg LGr_8 'lg dg LGl_16 \t\teg LGr_8 dg LAl_8\t\tdblg LG_4\t\t\tgg Er_8 Dr_16 Bl_16\t\t!t\r\n\r\n& sharpf sharpc\r\n!\tgg LA_4\t\t\t\ttar LAr_8 dg Bl_8\t\tdbla LAr_8 eg LGl_8\t\tgg LGr_8 dg LAl_8\r\n!\tgrp Cr_8 'c Dl_16\t\tgg Er_8 Cl_8\t\t\tD_4\t\t\t\tgg Er_8 Fr_16 HGl_16\r\n!\tdbha HAr_8 'ha HGl_16\t\ttg Er_8 Dl_8\t\t\tdbe Er_8 Dl_16\t\t\tdbb Br_8 LGl_8\r\n!\tgg LA_2\t\t\t\tbrl LA_4\t\t\tgg Er_8 Dr_16 Bl_16\t\t\t\t\t\t!I\r\n\r\n"}, {"file": "Bonnie Dundee.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Bonnie Dundee\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n& sharpf sharpc 6_8 I!''\r\n\tgg Cr_32 Dl_16 'd \t\r\n! \tgg E_4 'e \tgrp E_8 \t\r\n\tdbe Er_8 'e Cl_16 El_8 \t\r\n! \tHAr_8 'ha HGl_16 Fl_8 \t\r\n\tdbe E_4 \tD_8 \t\r\n! \tgg Cr_16 Er_8 'e LAl_8 \t\r\n\tgg Cr_16 Er_8 'e Cl_8 \t\r\n! \tgg B_4 tar B_8 \t\r\n\tdbb Br_8 'b gg Cl_16 Dl_8 \t\r\n\t!t \r\n\r\n& sharpf sharpc \t\r\n \tgg E_4 'e \tgrp E_8 \t\r\n\tdbe Er_8 'e Cl_16 El_8 \t\r\n! \tHAr_8 'ha HGl_16 Fl_8 \t\r\n\tdbe E_4 \tD_8 \t\r\n! \tgg Cr_16 Er_8 'e LAl_8 \t\r\n\tgg Cr_16 Er_8 'e Cl_8 \t\r\n! \tgg LA_4 tar LA_8 \t'1 brl LA_8 'la _'\r\n\t'2 brl LA_4 _' ''!I\r\n\r\n& sharpf sharpc I!'' LG_8 \t\r\n! \tgg LA_4 tar LA_8 \t\r\n\tthrd D_4 \r\n\tC_8 \t\r\n! \tgg B_4 tar B_8 \t\r\n\tdbb B_4 'b \t\r\n! \tgg B_4 tar B_8 \t\r\n\tgg Br_8 'b Cl_16 Dl_8 \t\r\n! \tgg C_4 tar C_8 \t\r\n\tdbc C_4 eg LA_8 \t\r\n!t \r\n\r\n& sharpf sharpc\tdbc Cr_8 'c eg Bl_16 dg Cl_8 \t\r\n\tthrd Dr_8 'd gg Cl_16 Dl_8 \t\r\n! \tgg E_4 grp E_8 \t\r\n\tdbf Fr_8 'f El_16 Dl_8 \t\r\n! \tgg Cr_16 Er_8 'e LAl_8 \t\r\n\tgg Cr_16 Er_8 'e Cl_8 \t\r\n! \tgg LA_4 tar LA_8 \t\r\n\t brl LA_8 'la \t\r\n\t''!I\r\n"}, {"file": "Brown Haired Maiden.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Brown Haired Maiden\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Slow\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n& sharpf sharpc C I!''\tgg LA_8\r\n!\tthrd Dr_8 'd Cl_16\t\tdbb Br_16 eg LAl_8 'la\t\tthrd D_4\t\tgg LAr_8 thrd Dl_8\r\n!\tdbf Fr_16 Dl_8 'd\t\tdbhg HGr_16 Fl_8 'f\t\tgg Fr_16 El_8 'e\t\tstrla Er_8 dbhg HGl_8\r\n!\ttg Fr_16 HAl_8 'ha\t\tgg HA_4\t\tLA_4\t\tthrd Dr_8 'd El_16\r\n!\tgg F_4\t\tdbhg HGr_16 El_8 'e\t\tthrd D_4\t\tlgstd D_8\t\t''!I\r\n\r\n& sharpf sharpc I!''\tdbhg HG_8\r\n!\ttg Fr_16 HAl_8 'ha\t\tgg HA_4\t\tLA_4\t\tthrd Dr_8 'd El_16\r\n!\tdbf Fr_16 Dl_8 'd\t\tdbhg HGr_16 Fl_8 'f\t\tgg Fr_16 El_8 'e\t\tstrla Er_8 dbhg HGl_8\r\n! '1\ttg Fr_16 HAl_8 'ha\t\tgg HA_4\t\tLA_4\t\tthrd Dr_8 'd El_16\r\n!\tgg F_4\t\tdbhg HGr_16 El_8 'e\t\tthrd D_4\t\tlgstd D_8\t\t_'\t''!I\r\n! '2\tdbha HAr_8 'ha HGl_16\t\ttg Fr_16 HAl_8 'ha\t\tLA_4\t\tthrd Dr_8 'd El_16\r\n!\tgg F_4\t\tdbhg HGr_16 El_8 'e\t\tthrd D_4\t\tlgstd D_8\t\t_'\t!I\r\n"}, {"file": "CabarFeidh.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\"Cabar Feidh\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\r\n& sharpf sharpc C I!\tE_8\r\n!\tdbhg HGr_8 'hg HAl_16\t\tstrf HGr_8 El_8\t\tdbhg HG_4\t\tthrd Dr_8 'd El_16\r\n!\tdbhg HG_4\t\tthrd Dr_8 'd Cl_16\t\tdbb Br_8 'b LAl_16\t\tgg LGr_8 'lg dg Bl_16\r\n!\tgg LAr_8 dbhg HGl_8\t\tdbha HA_4\t\tgg HA_4\t\tstrf HG_4\r\n!\tdbha HA_4\t\tdbe Er_8 'e Dl_16\t\tdbc Cr_8 'c Bl_16\t\tLAr_8 'la Bl_16 !t\r\n\r\n& sharpf sharpc\tdbhg HGr_8 'hg HAl_16\t\tstrf HGr_8 El_8\t\tdbhg HG_4\t\tthrd Dr_8 'd El_16\r\n!\tdbhg HG_4\t\tthrd Dr_8 'd Cl_16\t\tdbb Br_8 'b LAl_16\t\tgg LGr_8 'lg dg Bl_16\r\n!\tgg LAr_8 'la Bl_16\t\tgg C_4\t\tgrp Er_8 'e Fl_16\t\tdbhg HGr_8 El_8\r\n!\tdbha HA_4\t\tdbe Er_8 'e Dl_16\t\tdbc Cr_8 'c Bl_16\t\tgg LA_8\t\t!I\r\n\r\n& sharpf sharpc\tdbhg HG_8\r\n!\ttg LGr_8 'lg Bl_16\t\tthrd Dr_8 eg LGl_8\t\tdbb Br_8 LGl_8\t\tlhstd Dr_8 'd Bl_16\r\n!\tgg LGr_8 'lg dg Bl_16\t\tthrd Dr_8 eg LGl_8\t\tdbb Br_8 'b LAl_16\t\tgg LGr_8 'lg dg Bl_16\r\n!\tgg LAr_8 'la dg Cl_16\t\tdbe Er_8 LAl_8\t\tdbc Cr_8 eg LAl_8\t\tdbe Er_8 'e Cl_16\r\n!\tgg LAr_8 'la dg Cl_16\t\tdbe Er_8 LAl_8\t\tdbc Cr_8 'c Bl_16\t\tgg LAr_8 dbhg HGl_8 !t\r\n\r\n& sharpf sharpc\ttg LGr_8 'lg Bl_16\t\tthrd Dr_8 eg LGl_8\t\tdbb Br_8 LGl_8\t\tlhstd Dr_8 'd Bl_16\r\n!\tgg LGr_8 'lg dg Bl_16\t\tthrd Dr_8 eg LGl_8\t\tdbb Br_8 'b LAl_16\t\tgg LGr_8 'lg dg Bl_16\r\n!\tgg LAr_8 'la Bl_16\t\tgg C_4\t\tgrp Er_8 'e Fl_16\t\tdbhg HGr_8 El_8\r\n!\tdbha HA_4\t\tdbe Er_8 'e Dl_16\t\tdbc Cr_8 'c Bl_16\t\tgg LA_8\t\t!I\r\n\r\n& sharpf sharpc\tE_8\r\n!\tggrpc C_4\t\tdbhg HGr_8 Cl_8\t\tdbe Er_8 Cl_8\t\tdbhg HGr_8 'hg El_16\r\n!\tgg C_4\t\tgrp Er_8 'e Fl_16\t\tdbhg HGr_8 'hg El_16\t\tdbc Cr_8 El_8\r\n!\tthrd D_4\t\tdbha HAr_8 Dl_8\t\tdbf Fr_8 Dl_8\t\tdbha HAr_8 'ha Fl_16\r\n!\tthrd Dr_8 'd El_16\t\tgg Fr_8 'f HGl_16\t\tdbha HAr_8 'ha HGl_16\t\thdbf Fr_8 HAl_8 !t\r\n\r\n& sharpf sharpc\thgrpc C_4\t\tdbhg HGr_8 Cl_8\t\tdbe Er_8 Cl_8\t\tdbhg HGr_8 'hg El_16\r\n!\tgg C_4\t\tgrp Er_8 'e Fl_16\t\tdbhg HGr_8 'hg El_16\t\tdbc Cr_8 El_8\r\n!\tdbha HAr_8 'ha Fl_16\t\tdbhg HGr_8 El_8\t\tdbf Fr_8 Dl_8\t\tdbe Er_8 Cl_8\r\n!\tdbha HA_4\t\thdbe Er_8 'e Dl_16\t\tdbc Cr_8 'c Bl_16\t\tgg LA_8\t\t!I\r\n\r\n& sharpf sharpc\tdbhg HG_8\r\n!\ttg LGr_8 'lg dg LGl_16\t\teg LGr_8 dg Bl_8\t\tgg LGr_8 'lg dg LGl_16\t\teg LGr_8 dg Bl_8\r\n!\tgg LGr_8 'lg dg LGl_16\t\teg LGr_8 lhstd Dl_8\t\tdbb Br_8 'b LAl_16\t\tgg LGr_8 dg Bl_8\r\n!\tgg LAr_8 'la dg LAl_16\t\teg LAr_8 dg Bl_8\t\tgg LAr_8 'la dg LAl_16\t\teg LAr_8 dg Bl_8\r\n!\tgg LAr_8 'la dg LAl_16\t\teg LAr_8 El_8\t\tdbc Cr_8 'c Bl_16\t\tgg LAr_8 dbhg HGl_8 !t\r\n\r\n& sharpf sharpc\ttg LGr_8 'lg dg LGl_16\t\teg LGr_8 dg Bl_8\t\tgg LGr_8 'lg dg LGl_16\t\teg LGr_8 dg Bl_8\r\n!\tgg LGr_8 'lg dg LGl_16\t\teg LGr_8 lhstd Dl_8\t\tdbb Br_8 'b LAl_16\t\tgg LGr_8 dg Bl_8\r\n!\tgg LAr_8 'la Bl_16\t\tgg C_4\t\tgrp Er_8 'e Fl_16\t\tdbhg HGr_8 El_8\r\n!\tdbha HA_4\t\tdbe Er_8 'e Dl_16\t\tdbc Cr_8 'c Bl_16\t\tgg LA_8\t\t!I\r\n"}, {"file": "Flett From Flotta.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\"Flett From Flotta\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n \r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\"P/M Donald MacCleod \",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\r\n\r\n& sharpf sharpc 4_4  \r\n\r\n\r\n\r\nI!\tgg Fr_8 'f El_16\r\n\r\n!\tdbc Cr_8 'c  El_16\tdbc Cr_8 eg Bl_8\tdbc C_4\teg LAr_8 dg Cl_8\r\n\r\n!\tgg Er_8 'e Fl_16\tdbe Er_8 Cl_8\t\tdbe E_4\tdbc Cr_8 El_8 \r\n\r\n!\tdbf Fr_8 'f El_16\tgg Fr_8 HAl_8\t\thdbf F_4\tdbe Er_8 Cl_8\r\n\r\n!\tdbf Fr_8 'f El_16\tdbc Cr_8 eg LAl_8\tgrp B_4\tgg \tFr_8 'f El_16\t!t\r\n\r\n\r\n\r\n& sharpf sharpc\tdbc Cr_8 'c El_16\tdbc Cr_8 eg Bl_8\tdbc C_4\teg LAr_8 dg Cl_8\r\n\r\n!\tgg Er_8 'e Fl_16\tdbe Er_8 Cl_8\t\tdbha HA_4\tLAr_8 'la Bl_16\r\n\r\n!\tgrp C_4\t\t\tdbha HA_4\t\tEr_16 gg Cl_8 'c\tgg Br_8 'b dg Cl_16\r\n\r\n!\tgg LA_2\tbrl LA_4 !I\r\n\r\n \r\n\r\n\r\n\r\n& sharpf sharpc\tgg LAr_8 dg Cl_8\t\r\n\r\n! \tdbe E_4\t\tgg LAr_8 dg Cl_8\tdbha HA_4\tLAr_8 dg Cl_8\r\n\r\n!\tgg Er_8 'e Fl_16\tdbe Er_8 Cl_8\t\tdbe E_4\tgg LAr_8 dg Cl_8\r\n\r\n!\tdbha HA_4\t\tLAr_8 dg Cl_8\t\tdbe E_4\tdbc Cr_8 El_8\r\n\r\n!\tdbf Fr_8 'f El_16\tdbc Cr_8 eg LAl_8\tgrp B_4\t\tgg Fr_8 'f El_16\r\n!t\r\n\r\n\r\n\r\n& sharpf sharpc\tdbc Cr_8 'c El_16\tdbc Cr_8 eg Bl_8\tdbc C_4\teg LAr_8 dg Cl_8\r\n\r\n!\tgg Er_8 'e Fl_16\tdbe Er_8 Cl_8\tdbha HA_4\tLAr_8 'la Bl_16\r\n\r\n!\tgrp C_4\t\t\tdbha HA_4\t\tEr_16 gg Cl_8 'c \tgg Br_8 'b  dg Cl_16\r\n\r\n!\tgg LA_2\tbrl LA_4  !I\r\n\r\n\u001a"}, {"file": "Flower of Scotland.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Flower of Scotland\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"Slow Air\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,46\r\n\r\n\r\n& sharpf sharpc 6_8\r\nI!''    LA_8\r\n!       gg F_4 E_8                      thrd D_4 'd\r\n!       gg LA_4 'la ^tla                LA_4 gg LA_8\r\n!       thrd D_4 F_8                    dbe E_4 'e ^te  !t\r\n\r\n& sharpf sharpc       ^te E_4 Fr_16 El_16             thrd D_4 E_8\r\n!       gg F_4 'f ^tf                   F_4 GG F_8\r\n!       dbhg HGr_8 Fl_8 HGl_8           dbha HA_4 'ha\r\n!       thrd D_4 'd ^td                 D_4 gg LA_8     !t\r\n\r\n& sharpf sharpc       gg E_4 strla E_8                gg Er_8 Dl_8 El_8\r\n!       gg F_4 HG_8                     hdbf F_4 E_8\r\n!       thrd D_4 'd                     gg LA_4 'la ^tla\r\n!       LA_4 F_8                        dbhg HGr_8 Fl_8 HGl_8   !t\r\n\r\n& sharpf sharpc       dbha HA_4 'ha                   thrd D_4 'd ^td\r\n!       D_4 F_8                         dbhg HGr_8 Fl_8 El_8\r\n!       gg F_4 E_8                      thrd D_4 'd ^td\r\n!       D_4 gg D_8                      gg C_4 E_8      !t\r\n\r\n& sharpf sharpc       thrd D_4 'd ^td                 D_4 'd ^td\r\n!       D_4     ''!I\r\n!       gg D_8\r\n!       gg C_4 'c ^tc                   C_4 'c ^tc\r\n!       C_4 'c                          E_4 'e\r\n!       thrd D_2 'd                     !I\r\n\r\n"}, {"file": "Flowers Of The Forest.bww", "text": "Bagpipe Reader:1.0\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\nFontSizes,(90,100,120,80,250)\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,46\r\n\r\n\"The Flowers of the Forest\",(T,C,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\"Slow Air\",(Y,l,0,0,Times New Roman,14,700,255,0,18,0,0,0)\r\n\"Traditional\",(M,R,0,0,Times New Roman,12,700,255,0,18,0,0,0)\r\n\"\",(F,R,0,0,Times New Roman,12,400,0,0,18,0,0,0)\r\n\r\n\r\n& sharpf sharpc 6_8\r\n\tB_8\r\n!\tgg LA_4 'la\t\t\t\t\tspace space\tbrl LA_4 B_8\r\n!\tstrlg LA_4 gg Br_16 'b Cl_32\t\tspace space \tthrd D_4 gg ^3s Er_16 Fr_16 HGl_16 ^3e \r\n!\ttg F_4 'f\t\t\t\t\t\tspace space \tdbe E_4 D_8\r\n!\tgg B_8 D_4\t\t\t\t\tspace space \tdbb B_4 gg LAr_32 dg LGl_16 'lg\t\t!t\r\n\r\n& sharpf sharpc\r\n\tgg LA_4 'la\t\t\t\t\tspace space \tbrl LA_4 B_8\r\n!\tstrlg LA_4 gg Br_16 'b Cl_32\t\tspace space \tthrd D_4 gg ^3s Er_16 Fr_16 HGl_16 ^3e \r\n!\ttg F_4 'f\t\t\t\t\t\tspace space \tdbe E_4 F_8\r\n!\tthrd D_4 'd\t\t\t\t\tspace space \tgstd D_4 B_8\t\t\t\t\t\t!t\r\n\r\n& sharpf sharpc\r\n\tgg LA_4 'la\t\t\t\t\tspace space \tbrl LA_4 B_8\r\n!\tstrlg LA_4 gg Br_16 'b Cl_32\t\tspace space \tthrd D_4 gg ^3s Er_16 Fr_16 HGl_16 ^3e \r\n!\ttg F_4 'f\t\t\t\t\t\tspace space \tdbe E_4 D_8\r\n!\tgg B_8 D_4\t\t\t\t\tspace space \tdbb B_4 gg LAr_32 dg LGl_16 'lg\t\t!t\r\n\r\n& sharpf sharpc\r\n\tgg LA_4 'la\t\t\t\t\tspace space \tbrl LA_4 B_8\r\n!\tstrlg LA_4 gg Br_16 'b Cl_32\t\tspace space \tthrd D_4 gg ^3s Er_16 Fr_16 HGl_16 ^3e \r\n!\ttg F_4 'f\t\t\t\t\t\tspace space \tdbe E_4 F_8\r\n!\tthrd D_4 'd\t\t\t\t\tspace space \tgstd D_4\t\t\t\t\t\t\t!I\r\n\r\n& sharpf sharpc\r\n\tE_8\r\n!\tgg F_8 HA_4\t\t\t\t\tspace space \tstrhg HA_4 'ha\r\n!\tgrp HA_4 HG_8\t\t\t\tspace space \ttg Fr_16 HAr_8 'ha HGl_8\r\n!\ttdbf F_4 'f\t\t\t\t\tspace space \tdbe E_4 D_8\r\n!\tgg B_8 D_4\t\t\t\t\tspace space \tdbb B_4 gg LAr_32 dg LGl_16 'lg\t\t!t\r\n\r\n& sharpf sharpc\r\n\tgg F_8 HA_4\t\t\t\t\tspace space \tstrhg HA_4 'ha\r\n!\tgrp HA_4 HG_8\t\t\t\tspace space \ttg Fr_16 HAr_8 'ha HGl_8\r\n!\ttdbf F_4 'f\t\t\t\t\tspace space \tdbe E_4 D_8\r\n!\tdbf F_8 E_4 \t\t\t\t\tspace space \tstrla E_4 dbhg HG_8\t\t\t\t!t\r\n\r\n& sharpf sharpc\r\n\ttg F_8 HA_4\t\t\t\t\tspace space \tstrhg HA_4 'ha\r\n!\tgrp HA_4 HG_8\t\t\t\tspace space \ttg Fr_16 HAr_8 'ha HGl_8\r\n!\ttdbf F_4 'f\t\t\t\t\tspace space \tdbe E_4 D_8\r\n!\tgg B_8 D_4\t\t\t\t\tspace space \tdbb B_4 gg LAr_32 dg LGl_16 'lg\t\t!t\r\n\r\n& sharpf sharpc\r\n\tgg LA_4 'la\t\t\t\t\tspace space \tbrl LA_4 B_8\r\n!\tstrlg LA_4 gg Br_16 'b Cl_32\t\tspace space \tthrd D_4 gg ^3s Er_16 Fr_16 HGl_16 ^3e \r\n!\ttg F_4 'f\t\t\t\t\t\tspace space \tdbe E_4 F_8\r\n!\tthrd D_4 'd\t\t\t\t\tspace space \tgstd D_4\t\t\t\t\t\t\t!I"}, {"file": "Gael.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,80,100,250)\r\n\r\nTuneFormat,(1,0,M,C,500,500,500,550,P,1,0)\r\n\r\n\"The Gael\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"Slow Air\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,90\r\n\r\n& sharpf sharpc 3_4 I!''\tgg  D_4\t^td D_4\t Cr_16 Bl_8 'b\r\n!\tgg  B_4\t^tb B_4\tCr_16 Dl_8 'd\r\n!\tgg Cr_16  ^ts El_8 'e\tE_4\tE_4\r\n!\tE_2\t'e ^te\t!t\r\n\r\n& sharpf sharpc\tgg Dr_16  Fl_8 'f\t^tf\tF_4  \tEr_16 Dl_8 'd\r\n!\tgg Cr_16   El_8 'e ^te\tE_4  \tC_4\r\n!\tdbc Cr_16   ^ts Bl_8 'b \tB_4\t B_4 \r\n!\tB_2\t'b ^te\t''!I\r\n\r\n& sharpf sharpc 6_8 I!'' Br_8 'b gg Bl_16 strlg Bl_8\tgg Fr_8 'f El_16 Dl_8\r\n!\tgg Er_8 'e Dl_16 Cl_8\tgg Dr_8 'd Cl_16 LAl_8\r\n!\tBr_8 'b gg Bl_16 strlg Bl_8\tgg Fr_8 'f El_16 Dl_8\r\n!\tgg Er_8 'e Dl_16 Cl_8\tgg Dr_8 'd Cl_16 Bl_8\t!t\r\n\r\n& sharpf sharpc\tgg LA_4 tar LA_8\tgg Cr_8 'c Bl_16 Cl_8\r\n!\tgg Er_8 'e Cl_16 strlg Cl_8\tgg Cr_8 'c Bl_16 Cl_8\r\n!\tgg LA_4 C_8\tgg Cr_8 'c Bl_16 Cl_8\r\n!\tgg Er_8 'e Cl_16 strlg Cl_8\tgg Cr_8 'c Bl_16 Cl_8\t!t\r\n\r\n& sharpf sharpc\tthrd D_4 strc D_8\tgg Dr_8 'd Cl_16 Dl_8\r\n!\tgg Er_8 'e Cl_16 Dl_8\tgg Dr_8 'd Cl_16 Bl_8\r\n!\tgg C_4 grp C_8\tgg Cr_8 'c Bl_16 Cl_8\r\n!\tgg Er_8 'e Cl_16 strlg Cl_8\tgg Cr_8 'c Bl_16 LAl_8\t!t\r\n\r\n& sharpf sharpc\tgg ^ts B_4 'b\tB_4 'b ^te\r\n!\tgg Dr_8 'd Cl_16 Bl_8\tgg Dr_8 'd Cl_16 Bl_8\r\n!\tgg ^ts B_4 'b\tB_4 'b ^te\r\n!\tgg Dr_8 'd Cl_16 Bl_8\tgg Dr_8 'd Cl_16 Bl_8\t''!I\n\r\n\r\n"}, {"file": "Green Hills of Tyrol.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Green Hills of Tyrol\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Traditional\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"1998.3\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n& sharpf sharpc 3_4 I!''\r\ngg LAr_8 'la Bl_16\t\r\ngrp C_4\t\t\t\r\ndbc Cr_8 eg LAl_8\t!\r\ngg Cr_8 thrd Dl_8\t\r\ndbe E_4\t\t\t\r\nstrla Er_8 Fl_8\t\t!\r\ndbc Cr_8 Fl_8\t\t\r\ndbe Er_8 'e Cl_16\t\r\ngg B_4\t\t\t!\r\ntar Br_8 Fl_8\t\t\r\ndbe Er_8 'e Cl_16\t\r\nstrlg LA_4\t\t!t\r\n& sharpf sharpc\r\ngg LAr_8 'la Bl_16\t\r\ngrp C_4\t\t\t\r\ndbc Cr_8 eg LAl_8\t!\r\ngg Cr_8 thrd Dl_8\t\r\ndbe E_4\t\t\t\r\nstrla Er_8 Fl_8\t\t!\r\ndbc Cr_8 Fl_8\t\t\r\ndbe Er_8 'e Cl_16\t\r\ngg B_4\t\t\t!\r\ntar Br_8 strlg LAl_8\t\r\ndbc C_4\t\t\t\r\ngrpb LA_4\t\t''!I\r\n& sharpf sharpc\r\nI!''\r\ndbc Cr_8 El_8\t\t\r\ndbha HA_4\t\t\r\nstrhg HA_4\t\t!\r\nstrf HGr_8 Fl_8\t\t\r\ndbf Fr_8 El_8\t\t\r\nstrla E_4\t\t!\r\ngg Er_8 'e Fl_16\t\r\ndbe Er_8 Dl_8\t\t\r\ngstd E_4\t\t!\r\ngg Dr_8 'd El_16\t\r\ndbd Dr_8 Cl_8\t\t\r\ngrp C_4\t\t\t!t\r\n& sharpf sharpc\r\ndbc Cr_8 El_8\t\t\r\ndbha HA_4\t\t\r\nstrhg HA_4\t\t!\r\nstrf HGr_8 Fl_8\t\t\r\ndbf Fr_8 El_8\t\t\r\nstrla E_4\t\t!\r\ngg Er_8 'e Fl_16\t\r\ndbe E_4\t\t\t\r\nstrla Er_8 'e Dl_16\t!\r\ngg Cr_8 thrd Dl_8\t\r\ndbe E_4\t\t\t\r\nstrla E_4\t\t''!I\r\n\u001a\r\n"}, {"file": "Highland Cathedral.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Highland Cathedral\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"Hymn\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"CYMRU\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\r\n\r\n& sharpf sharpc 4_4 \r\n\r\nI!\tthrd D_4\t^td Dr_8 Er_16 Fl_16\t\tdbe Er_8 Dl_8\t\tgg LAr_8 Dl_8\r\n\r\n!\tdbe E_4\t\t^te Er_8 Fl_8\t\t\teg F_2\t\t\t\r\n\r\n!\tgg F_4\t\t^tf Fr_8 HGr_16 HAl_16\t\tstrf HGr_8 Fl_8\ttg Er_8 Dl_8\r\n\r\n!\tdbe E_4\t\t^te Er_8 Fl_8\t\t\tabr LA_2\t\t\t\t!t\r\n\r\n\r\n\r\n\r\n\r\n& sharpf sharpc\tgrp B_4\t\t^tb Br_8 Cr_16 Dl_16\t\tstrc Dr_8 eg LAl_8\tgg Cr_8 Dl_8\r\n\r\n!\tdbha HA_4\t^tha HAr_8 HGl_8\t\ttg F_2\r\n\r\n!\tdbe E_4\t\tEr_8 Fr_16 HGl_16\t\ttdbf Fr_8 Dl_8\t\tgg LAr_8 Dl_8\r\n\r\n!\tdbe E_4\t\t^te Er_8 Dl_8\t\t\tlgstd D_2\t\t\t\t!I  \r\n\r\n\r\n\r\n& sharpf sharpc \r\n\r\nI!\tdbc C_4 ^tc\tCr_8 gg LAl_8\t\t\tdbe E_4 \t\t^te Er_8 Cr_16 El_16\r\n\r\n!\tdbf F_4 ^tf\tFr_8 Cl_8\t\t\tgrp C_4 \t\t^tc Cr_8 Bl_8\r\n\r\n!\tstrlg LA_4 \t^tla\t\t\t\tLAr_16 Bl_16 Cl_8\t dbb B_2\r\n\r\n!\tdbc C_4 ^tc\tCr_16 Dl_16 El_8\t\tdbb B_2 \t\t\t\t!t\r\n\r\n\r\n\r\n& sharpf sharpc\tdbc C_4 ^tc\tCr_8 eg LAl_8\t\t\tdbe E_4 \t\t^te Er_8 Cr_16 El_16\r\n\r\n!\tdbf F_4 ^tf\tFr_8 Cl_8\t\t\tgrp C_4 \t\t^tc Cr_8 Bl_8\r\n\r\n!\tstrlg LA_4 \t^tla LAr_16 Bl_16 Cl_8\t \tdbb B_4 \t\t^tb Br_8 strlg LAl_8\r\n\r\n!\tgbr LA_2 'la \t\r\n\r\n!\t^tla LA_2 'la\t\t\t\t\t\t\t\t\t\t!I\r\n\r\n"}, {"file": "HundredPipers.bww", "text": "Bagpipe Reader:1.0\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\nFontSizes,(90,100,88,80,250)\r\nTuneFormat,(1,0,F,L,500,500,500,500,P,0,0)\r\n\r\n\"A Hundred Pipers\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\"Traditional\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\nTuneTempo,90\r\n\r\n& sharpf sharpc 6_8\tI!''\tE_8\r\n!       dbf F_4 LA_8\t\t\t\tgg LAr_8 'la Bl_16 strlg LAl_8\r\n!       dbb B_4\tD_8\t\t\t\tgstd D_4 HA_8\r\n!       gg HAr_8 'ha HGl_16 Fl_8\tdbf Fr_8 'f El_16 Dl_8\r\n!       dbf F_4 E_8\t\t\t\tdbe E_4 Dr_32 El_16 'e\t\t\t\t!t\r\n\r\n& sharpf sharpc\r\n!       dbf F_4 LA_8\t\t\t\tgg LAr_8 'la Bl_16 strlg LAl_8\r\n!       dbb B_4 D_8\t\t\t\tgstd D_4   HA_8\r\n!       gg HAr_8 'ha HGl_16 Fl_8\tgg Er_8 'e Fl_16 El_8\r\n!       thrd D_4 'd\t\t\t\tgstd D_4\t\t\t\t\t\t''!I\r\n\r\n\"2nd part\"\r\n& sharpf sharpc\tI!''\tgg Cr_32 Dl_16 'd\r\n!\tgg E_4 grp E_8\t\t\tdbe Er_8 'e Cl_16 El_8\r\n!\tdbf F_4 HA_8\t\t\t\tgg HAr_8 'ha HGl_16 Fl_8\r\n!\tdbe Er_8 'e Dl_16 Cl_8\t\tdbc Cr_8 'c Bl_16 strlg LAl_8\r\n!\tgg B_4 'b tar  B_8\t\t\tgg  Cr_32  Dl_16 'd                        !t\r\n\r\n& sharpf sharpc\r\n!\tgg E_4 grp E_8\t\t\tdbe  Er_8 'e Cl_16 El_8\r\n!\tdbf F_4 HA_8\t\t\t\tgg HAr_8 'ha HGl_16 Fl_8\r\n!\tdbe Er_8 'e Dl_16  Cl_8\t\tgg Br_16 dg  LGl_8 'lg dg Bl_8\r\n!\tstrlg  LA_4 'la\t\t\t\tbrl LA_4\t\t\t\t\t\t''!I"}, {"file": "Itchy Fingers.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Itchy Fingers\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"Hornpipe\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Jim Motherwell\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,94\r\n\r\n\r\n& sharpf sharpc 2_4 I!''\tgg Cr_16 Dl_16\r\n!\tdbe Er_8 strla Er_16 Fl_16\t\tgg Er_16 LAl_16 Eg Cl_16 El_16\r\n!\tgg Fr_16 LAl_16 gg Dl_16 Fl_16\t\tdbe Er_8 gg Cr_16 Dl_16\r\n!\tdbe Er_8 strla Er_16 Fl_16\t\tgg Er_16 LAl_16 dg Cl_16 El_16\r\n!\tgg Cr_16 dg LAl_16 gg Dl_16 Cl_16\t\tgstb Br_8 gg Cr_16 Dl_16\t\t!t\r\n\r\n& sharpf sharpc\tdbe Er_8 strla Er_16 Fl_16\t\tgg Er_16 LAl_16 dg Cl_16 El_16\r\n!\tgg Fr_16 LAl_16 gg Dl_16 Fl_16\t\tdbe Er_8 gg Cr_16 El_16\r\n!\tgg Dr_16 Cl_16 gg Cl_16 Bl_16\t\tgg Br_16 Fl_16 gg El_16 Bl_16\r\n!\tdbc Cr_8 LAl_8\t\tbrl LAl_8\t\t''!I\r\n\r\n& sharpf sharpc I!''\tgg Cr_16 El_16\r\n!\tHAr_16 gg HAl_16 LAl_16 HAl_16\t\tCr_16 HAl_16 LAl_16 HAl_16\r\n!\tFr_16 HAl_16 Dl_16 HAl_16\t\thdbe Er_8 gg Cr_16 El_16\r\n!\tHAr_16 gg HAl_16 LAl_16 HAl_16\t\tCr_16 HAl_16 LAl_16 HAl_16\r\n!\tCr_16 dg LAl_16 gg Dl_16 Cl_16\t\tgstb Br_8 gg Cr_16 El_16\t\t!t\r\n\r\n& sharpf sharpc '1\tHAr_16 gg HAl_16 LAl_16 HAl_16\t\tCr_16 HAl_16 LAl_16 HAl_16\r\n!\tFr_16 HAl_16 Dl_16 HAl_16\t\thdbe Er_8 gg Cr_16 El_16\r\n!\tgg Dr_16 Cl_16 gg Cl_16 Bl_16\t\tgg Br_16 Fl_16 gg El_16 Bl_16\r\n!\tdbc Cr_8 LAl_8\t\tbrl LAl_8\t_'\t''!I\r\n\r\n& sharpf sharpc '2\tdbe Er_8 strla Er_16 Fl_16\t\tgg Er_16 LAl_16 dg Cl_16 El_16\r\n!\tgg Fr_16 LAl_16 gg Dl_16 Fl_16\t\tdbe Er_8 gg Cr_16 El_16\r\n!\tgg Dr_16 Cl_16 gg Cl_16 Bl_16\t\tgg Br_16 Fl_16 gg El_16 Bl_16\r\n!\tdbc Cr_8 LAl_8\t\tbrl LAl_8\t_'\t!I\r\n"}, {"file": "Johnny_with_the_Bandy_Legs.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\"Converted from  BMW Dos file format to Bagpipe Reader 1.0 format using BMWFC32.\"\r\n\r\n\"Johnny with the Bandy Legs\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"arr: Ray Scott\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n& sharpf sharpc  2_4\tgg LAr_8 'la Dl_16\t\tgg Fr_8 Dl_8\r\n!\tgg B_4\t\t\ttar B_4\r\n!\tgg LAr_8 'la Cl_16\t\tdbe Er_8 Cl_8\r\n!\tthrd Dr_8 'd El_16\t\tgg Fr_8 HAl_8\r\n!t\r\n& sharpf sharpc\tgg LAr_8 'la Dl_16\t\tgg Fr_8 Dl_8\r\n!\tgg B_4\t\t\ttar B_4\r\n!\tgg LAr_8 'la Cl_16\t\tdbe Er_8 Cl_8\r\n!\tthrd D_4\t\t\tgstd D_4\r\n''!I\r\n\r\n& sharpf sharpc\tgg F_4\t\t\tD_4\r\n!\tgg LA_4\t\t\tbrl LAr_8 gg LAl_8\r\n!\tdbhg HG_4\t\tE_4\r\n!\tHA_4\t\t\tgrp HAr_8 HGl_8\r\n!t\r\n& sharpf sharpc\ttg F_4\t\t\tD_4\r\n!\tgg B_4\t\t\ttar B_4\r\n!\tgg LAr_8 'la Cl_16\t\tdbe Er_8 Cl_8\r\n!\tthrd D_4\t\t\tgstd D_4\r\n''!I"}, {"file": "Louden's_Bonnie_Woods_and_Braes.bww", "text": "Bagpipe Music Writer Gold:1.0\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\nGracenoteDurations,(40,60,30,50,100,200,800,1200,250,250,250,500,200)\r\nFontSizes,(100,100,120,100,250)\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\nTuneTempo,130\r\n\r\n\"Louden’s Bonnie Woods and Braes\",(T,C,0,0,Times New Roman,18,700,0,0,18,0,0,0)\r\n\"Strathspey\",(Y,L,0,0,Times New Roman,12,700,255,0,18,0,0,0)\r\n\"Traditional\",(M,R,0,0,,12,700,1,0,0,0,0,0)\r\n\"\",(F,C,0,0,Goudy Old Style,12,700,1,0,18,0,0,0)\r\n\r\n& sharpf sharpc C I!'' space\r\n\tLA_8\r\n!\tthrd D_4 \t\t\t\tlgstd D_4\t\t\t\tgg Fr_16 HAl_8 'ha\t\tstrhg HA_4\r\n!\tstrf HGr_8 'hg El_16\tgg Fr_8 'f Dl_16\t\tgg Er_8 'e Dl_16\t\tgg Cr_16 eg LAl_8 'la\t\t!t\r\n\r\n& sharpf sharpc space\r\n\tthrd D_4 \t\t\t\tlgstd D_4\t\t\t\tgg Fr_16 HAl_8 'ha\t\tstrhg HA_4\r\n!\tgg Br_16 Cl_16 Dl_8\tgg Cr_16 eg LAl_8 'la\tthrd D_4 \t\t\t\tlgstd D_8\t\t\t\t\t''!I\r\n\r\n& sharpf sharpc space I!'' space\r\n\tLA_8\r\n!\tthrd Dr_8 'd El_16\t\tgg Fr_8 'f Dl_16\t\tgg Er_8 'e Dl_16\t\tgg Cr_16  eg LAl_8 'la\r\n!\tgg Br_8 'b Cl_16\t\tthrd Dr_8 'd Cl_16\t\tgg Br_8 'b Cl_16\t\tgg LAr_8 'la Bl_16\t\t\t!t\r\n\r\n& sharpf sharpc space\r\n\tthrd Dr_8 'd El_16\t\tgg Fr_8 'f Dl_16\t\tgg Er_8 'e Dl_16\t\tgg Cr_16  eg LAl_8 'la\r\n!\tgg Br_16 Cl_16 Dl_8\tgg Cr_16 eg LAl_8 'la\tthrd D_4\t\t\t\tlgstd D_8\t\t\t\t\t''!I"}, {"file": "Mhari's Wedding.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Mhari's Wedding\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"St. Ann's of Hampton Version\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n& sharpf sharpc  2_4\t\tgg LGr_8 LAl_8 brl\tLAr_8 'la Bl_16\r\n!\t\tthrd Dr_8 'd El_16\tgg F_4\r\n!\t\tgg Er_8 Dl_8\t\tdbb Br_8 Dl_8\r\n! \t\tgg Fr_8 El_8 \t\tgg F_4\r\n!t\r\n\r\n& sharpf sharpc\t \t'22 gg LGr_8 LAl_8 brl \tLAr_8 'la Bl_16\r\n!\t\tthrd Dr_8 'd El_16\tgg F_4\r\n!\t\tgg Er_8 Dl_8\t\tdbb Br_8 LGl_8\r\n!\t\tgg LA_4\t\t\tbrl LA_4 _'\r\n''!I\r\n\r\n& sharpf sharpc\tgg Fr_8 HAl_8\t\tgg HA_4\r\n!\tgrp HAr_8 'ha HGl_16\thdbf F_4\r\n!\tgg Er_8 Dl_8\t\tdbb Br_8 Dl_8\r\n! \tgg Fr_8 El_8 \t\tgg F_4\r\n!t\r\n\r\n& sharpf sharpc\t'1 gg Fr_8 HAl_8\tgg HA_4\r\n!\tgrp HAr_8 'ha HGl_16\thdbf F_4\r\n!\tgg Er_8 Dl_8\t\tdbb Br_8 LGl_8\r\n!\tgg LA_4\t\t\tbrl LA_4 _'\r\n''!I\r\n"}, {"file": "Orange_and_Blue_RSPBA.bww", "text": "Bagpipe Reader:1.0\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\nFontSizes,(100,100,150,10,330)\r\nTuneFormat,(1,0,F,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,120\r\n\r\n\"Orange and Blue\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\"Strathspey\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\"Trad / arr RSPBA\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\"#CCOEBT\",(F,L,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\"13 Jun 2016\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\"https://www.youtube.com/@CaledonianCollection-Bagpipes\"\r\n\r\n& sharpf sharpc 4_4 \tI!''  HA_16\r\n!\tFr_16 Dl_8 'd\t\t\tlgstd D_4\t\t\t\t\tgg LAr_16 Dl_8 'd\t\tlgstd D_4\r\n!\tgg Fr_8 'f HGl_16\t\tdbha HAr_8 'ha Fl_16\t\tthrd D_4\t\t\t\tlgstd D_4\r\n!\tgg Cr_16 El_8 'e\t\tstrla E_4\t\t\t\t\tgg Cr_16 El_8 'e\t\tstrla E_4\r\n!\tgg Cr_8 'c Dl_16\t\tdbe Er_8 'e Cl_16\t\t\tgg LA_4\t\t\t\tbrl LAr_8 'la HAl_16\t!t\r\n\r\n& sharpf sharpc\r\n\tFr_16 Dl_8 'd\t\t\tlgstd D_4\t\t\t\t\tgg LAr_16 Dl_8 'd\t\tlgstd D_4\r\n!\tgg Fr_8 'f HGl_16\t\tdbha HAr_8 'ha Fl_16\t\tthrd D_4\t\t\t\tgg Fr_8 'f HGl_16\r\n!\tdbha HAr_8 'ha Fl_16\tdbhg HGr_8 'hg El_16\t\tgg Fr_8 'f Dl_16\t\tdbe Er_8 'e Dl_16\r\n!\tgg Cr_16 dg LAl_8 'la\tgg Br_8 'b Cl_16\t\t\tthrd D_4\t\t\t\tgstd D_8 'd\t\t''!I\r\n\t\r\n& sharpf sharpc \tI!''  HG_16\r\n!\ttg Fr_16 HAl_8 'ha\t\tstrhg HA_4\t\t\t\tFr_16 HAl_8 'ha\t\tstrhg HA_4\r\n!\tgg Fr_8 'f HGl_16\t\tdbha HAr_8 'ha Fl_16\t\tthrd D_4\t\t\t\tlgstd D_4\r\n!\tgg Cr_16 El_8 'e\t\tstrla E_4\t\t\t\t\tgg Cr_16 El_8 'e\t\tstrla E_4\r\n!\tgg Cr_8 'c Dl_16\t\tdbe Er_8 'e Cl_16\t\t\tgg LA_4\t\t\t\tbrl LAr_8 'la HGl_16\t!t\r\n\r\n& sharpf sharpc\r\n\ttg Fr_16 HAl_8 'ha\t\tstrhg HA_4\t\t\t\tFr_16 HAl_8 'ha\t\tstrhg HA_4\r\n!\thdbf Fr_8 'f HGl_16\t\tdbha HAr_8 'ha Fl_16\t\tthrd D_4\t\t\t\tgg Fr_8 'f HGl_16\r\n!\tdbha HAr_8 'ha Fl_16\tdbhg HGr_8 'hg El_16\t\tdbf Fr_8 'f Dl_16\t\tdbe Er_8 'e Dl_16\r\n!\tgg Cr_16 dg LAl_8 'la\tgg Br_8 'b Cl_16\t\t\tthrd D_4\t\t\t\tlgstd D_8 'd\t\t''!I"}, {"file": "Rowan Tree.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\"The Rowan Tree\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\r\n& sharpf sharpc C \r\nI! gg LAr_8 'la Bl_16\r\n!\tgrp ^ts C_4\t\tCr_8 ^te grp Cl_8\tdbc C_4\t\teg B_4\r\n!\tdbc Cr_8 ^ts El_8\t E_4\t^te\tstrlg E_4\tdbha HA_4\r\n!\thdbf ^ts F_4\tFr_8 ^te El_8\t\tgg F_4\t\tdbha HA_4\r\n!\thdbf ^ts F_4\tFr_8 ^te gg El_8\tstrla E_4\tgg LAr_8 'la Bl_16\r\n!t\r\n\r\n& sharpf sharpc\tgrp ^ts C_4\t\tCr_8 ^te grp Cl_8\tdbc C_4\t\teg B_4\r\n!\tdbc Cr_8 ^ts El_8\tE_4 ^te\t\tdbf ^ts F_4\t\tFr_8 ^te El_8\r\n!\tgg Er_8  ^ts Cl_8\t C_4\t^te\t\tdbb ^ts B_4\t\tBr_8 ^te strlg LAl_8\r\n!\tgg ^ts LA_4\t\tLA_4 ^te\t\tbrl LA_4 'la\r\n!I\r\n\r\n& sharpf sharpc I! E_8\r\n!\tstrla ^ts E_4\tEr_8 ^te HAl_8\t\tgg ^ts HA_4\t\tHAr_8 ^te HGl_8\r\n!\tstrf HG_4\ttg F_4\t\t\teg F_4\t\tdbha HA_4\r\n!\thdbe ^ts E_4\tEr_8 ^te Fl_8\t\tgg Fr_8 El_8\tthrd Dr_8 Cl_8\r\n!\tdbc ^ts C_4\t\tC_4\t^te\t\tdbb B_4\t\tgg LAr_8 'la Bl_16\r\n!t\r\n\r\n& sharpf sharpc\tgrp ^ts C_4\t\tCr_8 ^te grp Cl_8\tdbc C_4\t\teg B_4\r\n!\tdbc Cr_8 ^ts El_8\tE_4 ^te\t\tdbf ^ts F_4\t\tFr_8 ^te El_8\r\n!\tgg Er_8 ^ts Cl_8\t C_4 ^te\t\t\tdbb ^ts B_4\t\tBr_8 ^te strlg LAl_8\r\n!\tgg ^ts LA_4\t\tLA_4 ^te\t\tbrl LA_4\r\n!I"}, {"file": "Scotland The Brave (High Hand).bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\"Scotland The Brave\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\r\n& sharpf sharpc 4_4 I! E_8\r\n!\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\tgg Fr_8 'f Dl_16\t\t\tdbc Cr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbb B_4\t\t\tdbe E_4\t\t\t\t\tstrla Er_8 'e Fl_16\t\tgg Er_16 'e Dl_32 gg Cr_16 'c Bl_32\t!t\r\n\r\n\r\n& sharpf sharpc\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\t\tgg Fr_8 'f Dl_16\t\t\tdbc Cr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbb B_4\t\t\tgg LAr_8 'la Bl_16\t\t\tstrlg LA_4\t\t\tdbc Cr_8 El_8\t\t\t\t\t\t!I\r\n\r\n\r\n\r\n\r\n& sharpf sharpc I!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\t\tstrhg HAr_8 'ha HGl_16\t\ttg F_4\t\t\t\tdbha HAr_8 'ha HGl_16\r\n!\tdbf Fr_8 HAl_8\t\tstrf HGr_8 Fl_8\t\t\tdbe Er_8 Dl_8\t\t\tdbc Cr_8 Bl_8\t\t\t\t\t\t!t\r\n\r\n\r\n& sharpf sharpc\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\t\tgg Fr_8 'f Dl_16\t\t\tdbc Cr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbb B_4\t\t\tgg LAr_8 'la Bl_16\t\t\tstrlg LA_4 'la\t\t\t\t\t\t\t\t!I\r\n"}, {"file": "Scotland The Brave (Low Hand).bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\"Scotland The Brave\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\r\n\r\n& sharpf sharpc 4_4 I! E_8\r\n!\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\tgg Fr_8 'f Dl_16\t\t\tdbc C_4\t\t\t\tgg Er_8 'e Cl_16\r\n!\tdbb B_4\t\t\tgg E_4\t\t\t\t\tstrla Er_8 'e Fl_16\t\tgg Er_16 'e Dl_32 eg Cr_16 'c Bl_32\r\n!t\r\n& sharpf sharpc\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\tgg Fr_8 'f Dl_16\t\t\tdbc Cr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tgrp B_4\t\t\tgg LAr_8 'la Bl_16\t\t\tstrlg LA_4\t\t\tdbc Cr_8 El_8\t\t\t\t\t\t\r\n!I\r\n\r\n& sharpf sharpc I!\tdbha HA_4\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbha HA_4\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 El_8\r\n!\tthrd D_4\t\tgg Fr_8 'f Dl_16\t\t\tdbc C_4\t\t\t\tgg Er_8 'e Cl_16\r\n!\tdbb B_4\t\t\tgg E_4\t\t\t\t\tstrla Er_8 'e Fl_16\t\tgg Er_16 'e Dl_32 eg Cr_16 'c Bl_32\r\n!t\r\n& sharpf sharpc\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\tgg Fr_8 'f Dl_16\t\t\tdbc Cr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tgrp B_4\t\t\tgg LAr_8 'la Bl_16\t\t\tstrlg LA_4 'la\t\t\t\t\t\t\t\t\r\n!I\r\n"}, {"file": "Scotland The Brave.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Scotland The Brave\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"33\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n\r\n& sharpf sharpc 4_4 I! E_8\r\n!\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\t\tgg Fr_8 'f Dl_16\t\t\tdbc Cr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbb B_4\t\t\tdbe E_4\t\t\t\t\tstrla Er_16 Fl_8 'f\t\tgg Er_8 'e Dl_16 gg Cr_8 'c Bl_16\t!t\r\n\r\n\r\n& sharpf sharpc\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\t\tgg Fr_8 'f Dl_16\t\t\tdbc Cr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbb B_4\t\t\tgg LAr_8 'la Bl_16\t\t\tstrlg LA_4\t\t\tdbc Cr_8 El_8\t\t\t\t\t\t!I\r\n\r\n\r\n\r\n\r\n& sharpf sharpc I!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\t\tstrhg HAr_8 'ha HGl_16\t\ttg F_4\t\t\t\tdbha HAr_8 'ha HGl_16\r\n!\ttg Fr_8 HAl_8\t\tstrf HGr_8 Fl_8\t\t\tdbe Er_8 Dl_8\t\t\tdbc Cr_8 Bl_8\t\t\t\t\t\t!t\r\n\r\n\r\n& sharpf sharpc\tgg LA_4\t\t\ttar LAr_8 'la Bl_16\t\t\tdbc Cr_8 eg LAl_8\t\tdbc Cr_8 El_8\r\n!\tdbha HA_4\t\t\tstrhg HA_4\t\t\t\tgrp HAr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tthrd D_4\t\t\tgg Fr_8 'f Dl_16\t\t\tdbc Cr_8 El_8\t\t\tdbc Cr_8 eg LAl_8\r\n!\tdbb B_4\t\t\tgg LAr_8 'la Bl_16\t\t\tstrlg LA_4 'la\t\t\t\t\t\t\t\t!I\r\n"}, {"file": "Scots Wha Hae.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\nTuneTempo,50\r\n\r\n\"Scots Wha Hae\",(T,L,0,0,Tolkien,16,700,0,0,2,0,0,0)\r\n\r\n\"Slow March\",(Y,C,0,0,Tolkien,14,400,0,0,2,0,0,0)\r\n\r\n\"Traditional\",(M,R,0,0,Tolkien,14,400,0,0,18,0,0,0)\r\n\r\n\r\n& sharpf sharpc 6_8 I!'' \r\n\tgg LA_4 B_8\tgg LA_4 LG_8\t\r\n!\tgg LA_4 B_8\t\tthrd D_4 'd\r\n!\tgg B_4 C_8\tgg B_4 LA_8\t\t\r\n!\tgg B_4  C_8\t\tthrd D_4 E_8\r\n!t\r\n& sharpf sharpc \r\n\tgg F_4 HA_8\tE_4 F_8\t\t\r\n!\tthrd D_4 E_8\t\tgg F_4 E_8\r\n!\tgg D_4 B_8\tgg B_4 strlg LA_8\t\r\n!\t '1 gg LA_2 'la _'\r\n!\t '2 gg ^ts LA_2 LA_8 ^te _'\r\n''!I\r\n\r\n& sharpf sharpc I!'' E_8 \r\n!\tgg F_4  stre F_8\tgg F_4 E_8\t\r\n!\tgg F_4  HG_8\t\tHA_4 F_8\r\n!\tgg E_4 strla E_8\tgg E_4 D_8\t\r\n! \tgg E_4 F_8\t\tdbhg HG_4 'hg\r\n!t\r\n& sharpf sharpc \r\n\tHA_4 F_8\t\tgg E_4 F_8\r\n!\tthrd D_4 E_8\t\tgg F_4 E_8\r\n!\tgg D_4 B_8\t\tgg B_4 strlg LA_8\r\n!\t '1 gg ^ts LA_2 LA_8 ^te _'\r\n!\t '2 gg LA_2 'la _'\r\n\r\n''!I"}, {"file": "Skye Boat Song.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,46\r\n\r\n\"The Skye Boat Song\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\r\n\"Slow Air\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\r\n& sharpf sharpc 6_8\r\nI!''\tgg LAr_8 'la  Bl_16 LAl_8\t\tthrd Dr_8 'd gg Cl_16 Dl_8\r\n!\tgg Er_8 'e Fl_16 gg El_8\t\tdbha HA_4 \r\n!\thdbf Fr_8 'f gg El_16 Fl_8\t\tgg B_4 tar B_4\r\n!\tgg LA_4 'la\t\t\t\tbrl LA_4 'la\r\n''!I\r\n\r\n\r\n& sharpf sharpc\r\nI!''\tdbf Fr_8 'f gg Dl_16 Fl_8\t\tdbf F_4 'f\r\n!\tdbe Er_8 'e gg Bl_16 El_8\t\tdbe E_4 'e\r\n!t\r\n& sharpf sharpc\tthrd Dr_8 'd gg Bl_16 Dl_8\t\tdbd D_4 C_8\r\n!\tgg B_4 'b\t\t\t\ttar B_4 'b\r\n''!I\r\n\r\n& sharpf sharpc\r\nI!\tgg LAr_8 'la Bl_16 LAl_8\t\tthrd Dr_8 'd gg Cl_16 Dl_8\r\n!\tgg Er_8 'e Fl_16 gg El_8\t\tdbha HA_4 \r\n! '1\thdbf Fr_8 'f gg El_16 Fl_8\t\tgg B_4 tar B_4\r\n!\tgg LA_4 'la\t\t\t\tbrl LA_4 'la\r\n_' !I\r\n\r\n& sharpf sharpc '2\thdbf Fr_8 'f gg El_16 Fl_8\t\tgg B_4 dg C_8\r\n!\tthrd D_4 'd lgstd D_4 'd \r\n_' ''!I\r\n"}, {"file": "Steam Boat.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"Steam Boat\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n& sharpf sharpc 6_8 I!'' \tE_8\r\n! \tdbha HA_4 \tE_8 \tdbc C_4 \teg LA_8 \t\r\n! \tgg LAr_8 'la dg Cl_16 El_8 \t\r\n\tdbha HA_4 'ha \t\r\n! \tgg HAr_8 'ha HGl_16 Fl_8 \t\r\n\tdbe Er_8 'e Dl_16 Cl_8 \t\r\n! \tgg Br_8 'b Cl_16 Dl_8 \t\r\n\tdbc Cr_8 'c Bl_16 dg LAl_8 \t\r\n\t!t\r\n\r\n& sharpf sharpc \tdbha HA_4 \tE_8 \tdbc C_4 \teg LA_8 \t\r\n! \tgg LAr_8 'la dg Cl_16 El_8 \t\r\n\tdbha HA_4 'ha \t\r\n! \tgg HAr_8 'ha HGl_16 Fl_8 \t\r\n\tdbe Er_8 'e Dl_16 Cl_8 \t\r\n! \tdbe Er_8 'e Cl_16 dg LAl_8 \r\n\tbrl LA_4 \r\n\t''!I\r\n\r\n& sharpf sharpc I!'' B_8 \t\r\n!\tdbc C_4 \tE_8 \t\r\n\tgg Er_8 'e Fl_16 El_8 \t\r\n! \tgg Er_8 'e Fl_16 El_8 \t\r\n\tdbc C_4 \teg LA_8 \t\r\n! \tthrd D_4 \tF_8 \t\r\n\tgg Fr_16 HAr_8 'ha Fl_8 \t\r\n! \tgg Fr_8 'f HGl_16 HAl_8 \t\r\n\thdbf F_4 \tE_8 \t\r\n\t!t\t\r\n\r\n& sharpf sharpc\tdbc C_4 \tE_8 \t\r\n\tgg Er_8 'e Fl_16 El_8 \t\r\n! \tgg Er_8 'e Fl_16 El_8 \t\r\n\tdbc C_4 \teg LA_8 \t\r\n! \tHAr_8 'ha HGl_16 Fl_8 \t\r\n\tdbe Er_8 'e Dl_16 Cl_8 \t\r\n! \tdbe Er_8 'e Cl_16 dg LAl_8 \t\r\n\tbrl LA_4 \r\n\t''!I\r\n"}, {"file": "SteamBoat.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\"Steam Boat\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\"Trad.\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\r\n\r\n& sharpf sharpc 6_8 I!'' \tE_8\r\n! \tdbha HA_4 \tE_8 \tdbc C_4 \teg LA_8 \t\r\n! \tgg LAr_8 'la dg Cl_16 El_8 \t\r\n\tdbha HA_4 'ha \t\r\n! \tgg HAr_8 'ha HGl_16 Fl_8 \t\r\n\tdbe Er_8 'e Dl_16 Cl_8 \t\r\n! \tgg Br_8 'b Cl_16 Dl_8 \t\r\n\tdbc Cr_8 'c Bl_16 dg LAl_8 \t\r\n\t!t\r\n\r\n& sharpf sharpc \tdbha HA_4 \tE_8 \tdbc C_4 \teg LA_8 \t\r\n! \tgg LAr_8 'la dg Cl_16 El_8 \t\r\n\tdbha HA_4 'ha \t\r\n! \tgg HAr_8 'ha HGl_16 Fl_8 \t\r\n\tdbe Er_8 'e Dl_16 Cl_8 \t\r\n! \tdbe Er_8 'e Cl_16 dg LAl_8 \r\n\tbrl LA_4 \r\n\t''!I\r\n\r\n& sharpf sharpc I!'' B_8 \t\r\n!\tdbc C_4 \tE_8 \t\r\n\tgg Er_8 'e Fl_16 El_8 \t\r\n! \tgg Er_8 'e Fl_16 El_8 \t\r\n\tdbc C_4 \teg LA_8 \t\r\n! \tthrd D_4 \tF_8 \t\r\n\tgg Fr_16 HAr_8 'ha Fl_8 \t\r\n! \tgg Fr_8 'f HGl_16 HAl_8 \t\r\n\thdbf F_4 \tE_8 \t\r\n\t!t\t\r\n\r\n& sharpf sharpc\tdbc C_4 \tE_8 \t\r\n\tgg Er_8 'e Fl_16 El_8 \t\r\n! \tgg Er_8 'e Fl_16 El_8 \t\r\n\tdbc C_4 \teg LA_8 \t\r\n! \tHAr_8 'ha HGl_16 Fl_8 \t\r\n\tdbe Er_8 'e Dl_16 Cl_8 \t\r\n! \tdbe Er_8 'e Cl_16 dg LAl_8 \t\r\n\tbrl LA_4 \r\n\t''!I\r\n"}, {"file": "The Atholl Highlanders.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"The Atholl Highlanders\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"March\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,90\r\n\r\n\r\n\r\n& sharpf sharpc 6_8 I!''\tgg E_4 'e\t\t\tdbe Er_8 'e Cr_16 dg LAl_8\r\n\r\n!\t\tdbe Er_8 'e Cr_16 dg LAl_8\tgg Br_8 'b Cr_16 Dl_8\r\n\r\n!\t\tgg E_4 'e\t\t\tdbe Er_8 'e Cr_16 dg LAl_8\r\n\r\n!\t\tgg Br_8 'b Cr_16 Dl_8\t\tdbc Cr_8 'c Br_16 strlg LAl_8 !t\r\n\r\n\r\n\r\n& sharpf sharpc\t\tgg E_4 'e\t\t\tdbe Er_8 'e Cr_16 dg LAl_8\r\n\r\n!\t\tdbe Er_8 'e Cr_16 dg LAl_8\tgg Br_8 'b Cr_16 Dl_8\r\n\r\n!\t\tgg Cr_16 HAl_8 'ha El_8\t\tgg Fr_8 'f Er_16 Dl_8\r\n\r\n!\t\tgg Cr_16 Dl_8 'd eg Bl_8\tstrlg LA_4 ''!I\r\n\r\n\r\n\r\n& sharpf sharpc I!'' LAr_8\r\n\r\n!\t\tgg LAr_8 'la dg Cr_16 El_8\tgg LAr_8 'la dg Cr_16 El_8\r\n\r\n!\t\tgg Br_8 'b Dr_16 Fl_8\t\tgg Br_8 'b Dr_16 Fl_8\r\n\r\n!\t\tgg LAr_8 'la Cr_16 El_8\t\tgg LAr_8 'la dg Cr_16 El_8\r\n\r\n!\t\tgg Br_8 'b Cr_16 Dl_8\t\tdbc Cr_8 'c Br_16 strlg LAl_8 !t\r\n\r\n\r\n\r\n& sharpf sharpc\t\tgg LAr_8 'la dg Cr_16 El_8\tgg LAr_8 'la dg Cr_16 El_8\r\n\r\n!\t\tgg Br_8 'b Dr_16 Fl_8\t\tgg Br_8 'b Dr_16 Fl_8\r\n\r\n!\t\tgg Cr_16 HAl_8 'ha El_8\t\tgg Fr_8 'f Er_16 Dl_8\r\n\r\n!\t\tgg Cr_16 Dl_8 'd eg Bl_8\tstrlg LA_4 ''!I\r\n\r\n\r\n\r\n& sharpf sharpc I!''\t\tEr_8\r\n\r\n!\t\tHA_4 grp Er_8\t\t\tdbe Er_8 'e Dr_16 Cl_8\r\n\r\n!\t\tHA_4 grp Er_8\t\t\tdbe Er_8 'e Dr_16 Cl_8\r\n\r\n!\t\tHA_4 grp Er_8\t\t\tdbe Er_8 'e Dr_16 Cl_8\r\n\r\n!\t\tgg Br_8 'b Cr_16 Dl_8\t\tdbc C_4 Er_8 !t\r\n\r\n\r\n\r\n& sharpf sharpc\t\t'1 HA_4 grp Er_8\t\tdbe Er_8 'e Dr_16 Cl_8\r\n\r\n!\t\tHA_4 grp Er_8\t\t\tdbe E_4 Dr_8\r\n\r\n!\t\tgg Cr_16 HAl_8 'ha El_8\t\tgg Fr_8 'f Er_16 Dl_8\r\n\r\n!\t\tgg Cr_16 Dl_8 'd eg Bl_8\tstrlg LA_4 _' ''!I\r\n\r\n\r\n\r\n& sharpf sharpc\t\t'2 HA_4 grp Er_8\t\tHA_4 grp Er_8\r\n\r\n!\t\tgg F_4 grp Fr_8\t\t\tdbe E_4 Dr_8\r\n\r\n!\t\tgg Cr_16 HAl_8 'ha El_8\t\tgg Fr_8 'f Er_16 Dl_8\r\n\r\n!\t\tgg Cr_16 Dl_8 'd eg Bl_8\tstrlg LA_4 _' !I \r\n\r\n\r\n\r\n& sharpf sharpc I!'' Br_8\r\n\r\n!\t\tgg Cr_16 dg LAl_8 'la dg Cl_8\tgg Cr_16 dg LAl_8 'la dg Cl_8\r\n\r\n!\t\tdbd Dr_8 'd Br_16 Dl_8\t\tdbd Dr_8 'd Br_16 Dl_8\r\n\r\n!\t\tgg Cr_16 dg LAl_8 'la dg Cl_8\tgg Cr_16 dg LAl_8 'la dg Cl_8\r\n\r\n!\t\tgg Br_16 dg LGl_8 'lg Bl_8\tgg Br_8 'b Cr_16 Dl_8 !t\r\n\r\n\r\n\r\n& sharpf sharpc\t\tgg Cr_16 dg LAl_8 'la dg Cl_8\tgg Cr_16 dg LAl_8 'la dg Cl_8\r\n\r\n!\t\tdbd Dr_8 'd Br_16 Dl_8\t\tdbd Dr_8 'd Br_16 Dl_8\r\n\r\n!\t\tgg Cr_16 HAl_8 'ha El_8\t\tgg Fr_8 'f Er_16 Dl_8\r\n\r\n!\t\tgg Cr_16 Dl_8 'd eg Bl_8\tstrlg LA_4 ''!I\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n"}, {"file": "The Barren Rocks of Aden.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"The Barren Rocks of Aden\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"P/M A. MacKellar\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"CYMRU\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n\r\n\r\n\r\n& sharpf sharpc 2_4 I!'' E_8\r\n\r\n!\tgg Fr_8 'f HGl_16\t\t\t\ttdbf Fr_8 'f El_16\r\n\r\n!\tthrd Dr_8 gg Fl_8\t\t\t\tabr LAr_8 thrd Dl_8\r\n\r\n!\tdbc Cr_8 gg El_8\t\t\t\tabr LAr_8 'la El_16\r\n\r\n!\tgg Fr_8 abr LAl_8\t\t\t\tthrd Dr_8 'd El_16\t\t\t\t!t\r\n\r\n\r\n\r\n& sharpf sharpc\r\n\r\n!\tgg Fr_8 'f HGl_16\t\t\t\ttdbf Fr_8 'f El_16\r\n\r\n!\tthrd Dr_8 gg Fl_8\t\t\t\tabr LAr_8 thrd Dl_8\r\n\r\n!\tdbc Cr_8 gg El_8\t\t\t\tabr LAr_8 gg Fr_16 'f El_32\r\n\r\n!\tthrd D_4\t\t\t\t\tlgstd D_8\t\t\t\t\t''!I\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n& sharpf sharpc I!'' gg Fr_16 'f HGl_32\r\n\r\n!\tdbha HAr_8 'ha Fl_16\t\t\t\tthrd Dr_8 'd Fl_16\r\n\r\n!\tdbe Er_8 'e gg Fl_16\t\t\t\tabr LAr_8 gg Er_16 'e Fl_32\r\n\r\n!\tdbhg HGr_8 El_8\t\t\t\t\tdbc Cr_8 eg LAl_8\r\n\r\n!\tthrd Dr_8 Fl_8\t\t\t\t\tdbf Fr_16 'f El_32 gg Fl_16 'f HGl_32\t\t!t\r\n\r\n\r\n\r\n& sharpf sharpc\r\n\r\n!\tdbha HAr_8 'ha Fl_16\t\t\t\tthrd Dr_8 'd Fl_16\r\n\r\n!\tdbe Er_8 'e gg Fl_16\t\t\t\tabr LAr_8 gg Er_16 'e Fl_32\r\n\r\n!\tdbhg HGr_8 El_8\t\t\t\t\tdbc Cr_8 eg LAl_8\r\n\r\n!\tthrd D_4\t\t\t\t\tlgstd D_8\t\t\t\t\t''!I\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n& sharpf sharpc I!'' gg Fr_16 'f HGl_32\r\n\r\n!\tHAr_16 'ha Fl_32 gg Dl_16 'd Fl_32\t\tgg Fr_32 HAl_16 'ha Dl_16 'd Fl_32\r\n\r\n!\tdbe Er_8 gg Fl_8\t\t\t\tabr LAr_8 gg Er_16 'e Fl_32\r\n\r\n!\ttg HGr_16 'hg El_32 gg Cl_32 El_16 'e\t\tgg Er_16 HAl_16 'ha Cl_32 El_16 'e\r\n\r\n!\tthrd Dr_8 gg Fl_8\t\t\t\tabr LAr_8 gg Fr_16 'f HGl_32\t\t\t!t\r\n\r\n\r\n\r\n& sharpf sharpc\r\n\r\n!\tHAr_16 'ha Fl_32 gg Dl_16 'd Fl_32\t\tgg Fr_32 HAl_16 'ha Dl_16 'd Fl_32\r\n\r\n!\tdbe Er_8 gg Fl_8\t\t\t\tabr LAr_8 gg Er_16 'e Fl_32\r\n\r\n!\ttg HGr_16 'hg El_32 gg Cl_32 El_16 'e\t\tgg Er_16 HAl_16 'ha Cl_32 El_16 'e\r\n\r\n!\tthrd D_4\t\t\t\t\tlgstd D_8\t\t\t\t\t''!I\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n& sharpf sharpc I!'' gg Fr_16 'f HGl_32\r\n\r\n!\tHAr_16 'ha Fl_32 gg Dl_16 'd Fl_32\t\tgg LAr_16 'la Fl_32 gg Dl_16 'd Fl_32\r\n\r\n!\tHAr_16 'ha Fl_32 gg Dl_16 'd Fl_32\t\tgg LAr_16 'la Fl_32 gg Dl_16 'd Fl_32\r\n\r\n!\ttg HGr_16 'hg El_32 gg Cl_32 El_16 'e\t\tgg LAr_16 'la El_32 gg Cl_32 El_16 'e\r\n\r\n!\ttg HGr_16 'hg El_32 gg Cl_32 El_16 'e\t\tgg LAr_16 'la El_32 gg Cl_32 El_16 'e\t\t!t\r\n\r\n\r\n\r\n& sharpf sharpc\r\n\r\n!\tHAr_16 'ha Fl_32 gg Dl_16 'd Fl_32\t\tgg LAr_16 'la Fl_32 gg Dl_16 'd Fl_32\r\n\r\n!\tHAr_16 'ha Fl_32 gg Dl_16 'd Fl_32\t\tgg LAr_16 'la Fl_32 gg Dl_16 'd Fl_32\r\n\r\n!\ttg HGr_16 'hg El_32 gg Cl_32 El_16 'e\t\tgg LAr_16 'la El_32 gg Cl_32 El_16 'e\r\n\r\n!\tthrd D_4\t\t\t\t\tlgstd D_8\t\t\t\t\t''!I\r\n\r\n"}, {"file": "The Brown Haired Maiden.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"THE BROWN HAIRED MAIDEN\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"March\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"Pipeline Pipe Band\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,84\r\n\r\n\r\n& sharpf sharpc 2_4 I!'' LA_8 \t\r\n! \tthrd Dr_8 'd Cl_16 \t\r\n\tgg Br_8 strlg LAl_8 \t\r\n!\tthrd D_4 \t\r\n\teg LAr_8 'la thrd Dl_16 \t\r\n! \tgg Fr_8 Dl_8 \t\r\n\tdbhg HGr_8 Fl_8 \t\r\n! \tgg Fr_8 El_8 \t\r\n\tstrla Er_8 dbhg HGl_8 \t\r\n!t \t\r\n\r\n& sharpf sharpc \tFr_16 HAl_8 'ha \t\r\n\thdbf Fr_8 HAl_8 \t\r\n! \tLA_4 \t\r\n\tthrd Dr_8 'd El_16 \t\r\n! \tgg F_4 \t\r\n\tdbhg HGr_8 El_8 \t\r\n! \tthrd D_4 \t\r\n\tlgstd D_8 \t\r\n''!I\r\n\r\n& sharpf sharpc I! \t \tdbhg HG_8 \t\r\n! \tFr_16 HAl_8 'ha \t\r\n\thdbf Fr_8 HAl_8 \t\r\n! \tLA_4 \t\r\n\tthrd Dr_8 'd El_16 \t\r\n! \tgg Fr_8 Dl_8 \t\r\n\tdbhg HGr_8 Fl_8 \t\r\n! \tgg Fr_8 El_8 \t\r\n\tstrla Er_8 dbhg HGl_8 \t\r\n!t \t\r\n\r\n& sharpf sharpc \tFr_16 HAl_8 'ha \t\r\n\thdbf Fr_8 HAl_8 \t\r\n! \tLA_4 \t\r\n\tthrd Dr_8 'd El_16 \t\r\n! \tgg F_4 \t\r\n\tdbhg HGr_8 El_8 \t\r\n! \tthrd D_4 \t\r\n\tlgstd Dr_8 dbhg HGl_8 \t\r\n!t\r\n\r\n& sharpf sharpc \tFr_16 HAl_8 'ha \t\r\n\thdbf Fr_8 HAl_8 \t\r\n! \tLA_4 \t\r\n\tthrd Dr_8 'd El_16 \t\r\n! \tgg Fr_8 Dl_8 \t\r\n\tdbhg HGr_8 Fl_8 \t\r\n! \tgg Fr_8 El_8 \t\r\n\tstrla Er_8 dbhg HGl_8 \t\r\n!t \t\r\n\r\n& sharpf sharpc \tHAr_8 'ha HGl_16 \t\r\n\thdbf Fr_8 HAl_8 \t\r\n! \tLA_4 \t\r\n\tthrd Dr_8 'd El_16 \t\r\n! \tgg F_4 \t\r\n\tdbhg HGr_8 El_8 \t\r\n! \tthrd D_4 \t\r\n\tlgstd D_8 \t\r\n!I \r\n"}, {"file": "The Highland Cathedral.bww", "text": "Bagpipe Reader:1.0\r\n\r\nMIDINoteMappings,(54,56,58,59,61,63,64,66,68,56,58,60,61,63,65,66,68,70,55,57,59,60,62,64,65,67,69)\r\n\r\nFrequencyMappings,(370,415,466,494,554,622,659,740,831,415,466,523,554,622,699,740,831,932,392,440,494,523,587,659,699,784,880)\r\n\r\nInstrumentMappings,(71,71,45,33,1000,60,70)\r\n\r\nGracenoteDurations,(20,40,30,50,100,200,800,1200,250,250,250,500,200)\r\n\r\nFontSizes,(90,100,100,80,250)\r\n\r\nTuneFormat,(1,0,M,L,500,500,500,500,P,0,0)\r\n\r\n\r\n\r\n\"The Highland Cathedral\",(T,L,0,0,Times New Roman,16,700,0,0,18,0,0,0)\r\n\r\n\"Slow Air\",(Y,C,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"\",(M,R,0,0,Times New Roman,14,400,0,0,18,0,0,0)\r\n\r\n\"St. Ann's of Hampton Pipe Band\",(F,R,0,0,Times New Roman,10,400,0,0,18,0,0,0)\r\n\r\nTuneTempo,46\r\n\r\n \r\n& sharpf sharpc 4_4 \r\nI!      thrd D_4 'd\tEr_16 Fl_16\tgg Er_8 Dl_8\t\tstrlg LAr_8 Dl_8 \t\r\n!       gg E_4 'e\tF_8\t\tgg F_2 \r\n!       gg F_4 'f\tHGr_16 HAl_16\tHGr_8 Fl_8\t\tgg Er_8 Dl_8 \t\r\n!       gg E_4 'e\tF_8            strlg LA_2 \t\t!t \r\n\r\n \r\n& sharpf sharpc       gg B_4 'b\tC_8\t\tlgstd Dr_8 LAl_8\tdg Cr_8 Dl_8 \t\r\n!       dbha HA_4 'ha\tstrf HG_8\tF_2 \r\n!       gg E_4 'e\tFr_16 HGl_16\tFr_8 Dl_8\t\tstrlg LAr_8 Dl_8 \r\n!       gg E_4 'e\tD_8\t\tlgstd D_2 \t\t!I \r\n \r\n& sharpf sharpc        \r\nI!''    gg C_4 'c \tstrlg LA_8\tgg E_4 'e\t\tCr_16 El_16\r\n!      \tgg F_4 'f\tC_8\t\tdbc C_4 'c\t\tB_8 \r\n!       strlg LA_4      ^tla LAr_16 Bl_16 Cl_8          \tdbb B_2 \r\n!       dbc C_4 ^tc Cr_16 Dl_16 El_8    dbb B_2 !t \r\n\r\n& sharpf sharpc       gg C_4 'c \tstrlg LA_8\tgg E_4 'e\t\tCr_16 El_16\r\n!      \tgg F_4 'f\tC_8\t\tdbc C_4 'c\t\tB_8 \r\n!       strlg LA_4      ^tla LAr_16 Bl_16 Cl_8           \tdbb B_4 'b\tstrlg LA_8 \r\n!       gg LA_2\t\t^tla LA_2 \t!t\r\n\r\n& sharpf sharpc\tthrd D_4 'd\tEr_16 Fl_16\tgg Er_8 Dl_8\t\tstrlg LAr_8 Dl_8 \t\r\n!       gg E_4 'e\tF_8\t\tgg F_2 \r\n!       gg F_4 'f\tHGr_16 HAl_16\tHGr_8 Fl_8\t\tgg Er_8 Dl_8 \t\r\n!       gg E_4 'e\tF_8        \tstrlg LA_2 \t\t!t \r\n\r\n& sharpf sharpc       gg B_4 'b\tC_8\t\tlgstd Dr_8 LAl_8\tdg Cr_8 Dl_8 \t\r\n!       dbha HA_4 'ha\tstrf HG_8\tF_2 \r\n!       gg E_4 'e\tFr_16 HGl_16\tFr_8 Dl_8\t\tstrlg LAr_8 Dl_8 \r\n!       gg E_4 'e\tD_8\t\tlgstd D_2 \t\t''!I\r\n"}];
+const APP_URL = 'https://echantermontreal.github.io/tune-memory-trainer/';
+
+// ---------- i18n ----------
+const I18N = {
+es:{
+ loading:'Cargando…', libInfo:'{n} tunes · intro de {b} compases',
+ m_audio:'🎧 Oído', m_visual:'🎼 Partitura', m_combo:'🎼+🎧 Combinado', m_recall:'🧠 Recordar', m_meter:'⏱ Tiempo',
+ sess:'Sesión: {ok}/{n}', streak:'🔥 racha {n}',
+ pAudio:'¿Qué tune es? Escucha el arranque ({b} compases).', playIntro:'▶ Escuchar intro',
+ pVisual:'¿Qué tune empieza así?', pCombo:'Lee los compases, imagina cómo suenan y elige la tune. Al responder, la escucharás.',
+ pMeter:'¿En qué tiempo está esta tune? Escucha el arranque y siente el pulso.',
+ ok:'¡Correcto!', bad:'No, era otra tune.', badMeter:'No, está en {ts}.', okMeter:'¡Correcto! Está en {ts}.',
+ yourPick:'La que elegiste, para compararla:', next:'Siguiente →', listen:'▶ Escuchar', tapNote:'Toca una nota para oírla sola',
+ pRecall:'Te piden esta tune. Piensa (o toca en el chanter) cómo arranca: las notas de los primeros {b} compases.',
+ showStart:'Mostrar el arranque', didYou:'¿Lo recordabas?', gYes:'✅ Sí, seguro', gMaybe:'🤔 Dudé', gNo:'❌ No',
+ need2:'Necesitas al menos 2 tunes en la biblioteca.',
+ tabPractice:'Practicar', tabRep:'Repertorio', tabStats:'Progreso', tabSettings:'Ajustes',
+ repTitle:'Repertorio', search:'Buscar tune…', all:'Todas', other:'Otras',
+ src:'Origen', srcEmbed:'tunes incluidas en la app', srcGit:'carpeta tunes/ en GitHub', srcFolder:'carpeta tunes/',
+ dupes:'Duplicados ignorados', errs:'No se pudieron leer', local:'en este dispositivo', file:'Archivo', removeLocal:'Quitar de este dispositivo',
+ addTitle:'Agregar tunes (.bww)', addHint:'Se guardan solo en este dispositivo. Para que aparezcan para todos, súbelas a la carpeta tunes/ del repositorio en GitHub.', unreadable:'no se pudo leer',
+ kAcc:'aciertos', kAns:'respuestas', kMast:'dominadas', confTitle:'Tus confusiones', confWith:'la confundiste con {x}', noConf:'Todavía no hay confusiones registradas.',
+ simTitle:'Intros que se parecen', simHint:'Arranques con secuencias de notas parecidas. Aparecen juntos como opciones para que aprendas a diferenciarlos.', perTune:'Por tune',
+ setTitle:'Ajustes', setLang:'Idioma', setBars:'Compases del intro', bars2:'2 compases', bars4:'4 compases', setSpeed:'Velocidad', setDrones:'Drones', setGrace:'Mostrar gracenotes en la partitura', setHard:'Practicar solo las difíciles',
+ appTitle:'App', install:'📲 Instalar app', share:'🔗 Compartir', installHint:'En Android (Chrome): menú ⋮ → «Instalar app» o «Agregar a pantalla de inicio». En iPhone (Safari): Compartir → «Agregar a inicio». En la PC (Chrome/Edge): ícono de instalar en la barra de direcciones.',
+ copied:'Enlace copiado', shareText:'Tune Memory Trainer: aprende el arranque de las tunes de gaita, de oído y por partitura.',
+ dataTitle:'Datos', reset:'Borrar estadísticas', resetConfirm:'Toca otra vez para confirmar', dataHint:'Tu progreso se guarda en este navegador.',
+ tip_24:'2/4: dos pulsos por compás, «un-dos». Típico de marchas de competición y hornpipes.',
+ tip_34:'3/4: tres pulsos, «un-dos-tres». Marchas en 3/4, airs y valses.',
+ tip_44:'4/4: cuatro pulsos, «un-dos-tres-cuatro». Marchas en 4/4 e himnos; los strathspeys también van en 4/4 (C).',
+ tip_68:'6/8: dos pulsos, cada uno dividido en tres, «un-y-a dos-y-a». Jigs y marchas en 6/8: suena saltado.',
+ tip_98:'9/8: tres pulsos divididos en tres. Slip jigs.', tip_128:'12/8: cuatro pulsos divididos en tres.', tip_22:'2/2: dos pulsos de blanca (alla breve).'
+},
+en:{
+ loading:'Loading…', libInfo:'{n} tunes · {b}-bar intro',
+ m_audio:'🎧 Ear', m_visual:'🎼 Score', m_combo:'🎼+🎧 Combined', m_recall:'🧠 Recall', m_meter:'⏱ Time',
+ sess:'Session: {ok}/{n}', streak:'🔥 streak {n}',
+ pAudio:'Which tune is it? Listen to the opening ({b} bars).', playIntro:'▶ Play intro',
+ pVisual:'Which tune starts like this?', pCombo:'Read the bars, hear them in your head and pick the tune. You will hear it after answering.',
+ pMeter:'What time signature is this tune in? Listen to the opening and feel the pulse.',
+ ok:'Correct!', bad:'No — it was a different tune.', badMeter:"No — it's in {ts}.", okMeter:"Correct! It's in {ts}.",
+ yourPick:'The one you picked, to compare:', next:'Next →', listen:'▶ Play', tapNote:'Tap a note to hear it alone',
+ pRecall:"You're asked to play this tune. Think (or play on the chanter) how it starts: the notes of the first {b} bars.",
+ showStart:'Show the opening', didYou:'Did you remember it?', gYes:'✅ Yes, sure', gMaybe:'🤔 Hesitated', gNo:'❌ No',
+ need2:'You need at least 2 tunes in the library.',
+ tabPractice:'Practice', tabRep:'Repertoire', tabStats:'Progress', tabSettings:'Settings',
+ repTitle:'Repertoire', search:'Search tune…', all:'All', other:'Other',
+ src:'Source', srcEmbed:'tunes built into the app', srcGit:'tunes/ folder on GitHub', srcFolder:'tunes/ folder',
+ dupes:'Duplicates ignored', errs:'Could not read', local:'on this device', file:'File', removeLocal:'Remove from this device',
+ addTitle:'Add tunes (.bww)', addHint:'Saved on this device only. To make them available to everyone, upload them to the tunes/ folder of the GitHub repository.', unreadable:'could not be read',
+ kAcc:'correct', kAns:'answers', kMast:'mastered', confTitle:'Your mix-ups', confWith:'you confused it with {x}', noConf:'No mix-ups recorded yet.',
+ simTitle:'Similar openings', simHint:'Openings with similar note sequences. They show up together as options so you learn to tell them apart.', perTune:'By tune',
+ setTitle:'Settings', setLang:'Language', setBars:'Intro length', bars2:'2 bars', bars4:'4 bars', setSpeed:'Speed', setDrones:'Drones', setGrace:'Show gracenotes on the score', setHard:'Practice only the hard ones',
+ appTitle:'App', install:'📲 Install app', share:'🔗 Share', installHint:'Android (Chrome): menu ⋮ → "Install app" or "Add to Home screen". iPhone (Safari): Share → "Add to Home Screen". PC (Chrome/Edge): install icon in the address bar.',
+ copied:'Link copied', shareText:'Tune Memory Trainer: learn how every bagpipe tune starts, by ear and from the score.',
+ dataTitle:'Data', reset:'Reset statistics', resetConfirm:'Tap again to confirm', dataHint:'Your progress is saved in this browser.',
+ tip_24:'2/4: two beats per bar, "one-two". Typical of competition marches and hornpipes.',
+ tip_34:'3/4: three beats, "one-two-three". 3/4 marches, airs and waltzes.',
+ tip_44:'4/4: four beats, "one-two-three-four". 4/4 marches and hymns; strathspeys are also in 4/4 (C).',
+ tip_68:'6/8: two beats, each split in three, "one-and-a two-and-a". Jigs and 6/8 marches: a bouncing feel.',
+ tip_98:'9/8: three beats split in three. Slip jigs.', tip_128:'12/8: four beats split in three.', tip_22:'2/2: two half-note beats (cut time).'
+},
+fr:{
+ loading:'Chargement…', libInfo:'{n} airs · intro de {b} mesures',
+ m_audio:'🎧 Oreille', m_visual:'🎼 Partition', m_combo:'🎼+🎧 Combiné', m_recall:'🧠 Mémoire', m_meter:'⏱ Mesure',
+ sess:'Session : {ok}/{n}', streak:'🔥 série {n}',
+ pAudio:'Quel air est-ce ? Écoute le début ({b} mesures).', playIntro:"▶ Écouter l'intro",
+ pVisual:'Quel air commence ainsi ?', pCombo:"Lis les mesures, imagine le son et choisis l'air. Tu l'entendras après ta réponse.",
+ pMeter:'Dans quelle mesure est cet air ? Écoute le début et sens la pulsation.',
+ ok:'Bravo !', bad:"Non, c'était un autre air.", badMeter:"Non, c'est en {ts}.", okMeter:"Bravo ! C'est en {ts}.",
+ yourPick:'Celui que tu as choisi, pour comparer :', next:'Suivant →', listen:'▶ Écouter', tapNote:"Touche une note pour l'entendre seule",
+ pRecall:'On te demande cet air. Pense (ou joue au chanter) comment il commence : les notes des {b} premières mesures.',
+ showStart:'Afficher le début', didYou:"Tu t'en souvenais ?", gYes:'✅ Oui, sûr', gMaybe:"🤔 J'ai hésité", gNo:'❌ Non',
+ need2:'Il faut au moins 2 airs dans la bibliothèque.',
+ tabPractice:'Pratiquer', tabRep:'Répertoire', tabStats:'Progrès', tabSettings:'Réglages',
+ repTitle:'Répertoire', search:'Chercher un air…', all:'Tous', other:'Autres',
+ src:'Source', srcEmbed:"airs inclus dans l'app", srcGit:'dossier tunes/ sur GitHub', srcFolder:'dossier tunes/',
+ dupes:'Doublons ignorés', errs:'Illisibles', local:'sur cet appareil', file:'Fichier', removeLocal:'Retirer de cet appareil',
+ addTitle:'Ajouter des airs (.bww)', addHint:'Enregistrés sur cet appareil seulement. Pour les rendre disponibles à tous, téléverse-les dans le dossier tunes/ du dépôt GitHub.', unreadable:'illisible',
+ kAcc:'réussite', kAns:'réponses', kMast:'maîtrisés', confTitle:'Tes confusions', confWith:'confondu avec {x}', noConf:'Aucune confusion pour le moment.',
+ simTitle:'Débuts qui se ressemblent', simHint:'Débuts aux séquences de notes semblables. Ils apparaissent ensemble comme choix pour apprendre à les distinguer.', perTune:'Par air',
+ setTitle:'Réglages', setLang:'Langue', setBars:"Longueur de l'intro", bars2:'2 mesures', bars4:'4 mesures', setSpeed:'Vitesse', setDrones:'Bourdons', setGrace:'Afficher les gracenotes', setHard:'Seulement les airs difficiles',
+ appTitle:'App', install:"📲 Installer l'app", share:'🔗 Partager', installHint:"Android (Chrome) : menu ⋮ → « Installer l'application » ou « Ajouter à l'écran d'accueil ». iPhone (Safari) : Partager → « Sur l'écran d'accueil ». PC (Chrome/Edge) : icône d'installation dans la barre d'adresse.",
+ copied:'Lien copié', shareText:"Tune Memory Trainer : apprends le début de chaque air de cornemuse, à l'oreille et sur partition.",
+ dataTitle:'Données', reset:'Effacer les statistiques', resetConfirm:'Touche encore pour confirmer', dataHint:'Ta progression est enregistrée dans ce navigateur.',
+ tip_24:'2/4 : deux temps par mesure, « un-deux ». Typique des marches de compétition et des hornpipes.',
+ tip_34:'3/4 : trois temps, « un-deux-trois ». Marches en 3/4, airs et valses.',
+ tip_44:'4/4 : quatre temps, « un-deux-trois-quatre ». Marches en 4/4 et hymnes ; les strathspeys sont aussi en 4/4 (C).',
+ tip_68:'6/8 : deux temps divisés en trois, « un-et-a deux-et-a ». Jigs et marches en 6/8 : ça sautille.',
+ tip_98:'9/8 : trois temps divisés en trois. Slip jigs.', tip_128:'12/8 : quatre temps divisés en trois.', tip_22:'2/2 : deux temps à la blanche (alla breve).'
+}};
+
+// ---------- storage (safe) ----------
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const navLang = ((navigator.language||'es').slice(0,2));
+const S = Object.assign({bars:2, speed:1, drones:false, grace:true, hard:false, mode:'audio', lang: I18N[navLang] ? navLang : 'es'}, store.get('tmt_settings', {}));
+let P = store.get('tmt_progress', null) || {box:{}, hist:{}, conf:{}};
+const saveP = () => store.set('tmt_progress', P);
+const saveS = () => store.set('tmt_settings', S);
+const tr = (k, v={}) => (I18N[S.lang][k] ?? I18N.es[k] ?? k).replace(/\{(\w+)\}/g, (m,x) => v[x] ?? m);
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- library ----------
+let TUNES = [], LIB_SRC = 'srcEmbed', LIB_DUPES = [], LIB_ERRORS = [];
+const normTitle = t => t.toLowerCase().replace(/\(.*?\)/g,'').replace(/^the\s+/,'').replace(/[^a-z0-9]/g,'');
+const meterOf = tune => tune.tsLabel==='C' ? '4/4' : tune.tsLabel==='¢' ? '2/2' : `${tune.tsNum}/${tune.tsDen}`;
+const tsShow = t => t.ts==='C' ? '4/4 (C)' : t.ts==='¢' ? '2/2 (¢)' : t.ts;
+function decode(buf){ try { return new TextDecoder('utf-8',{fatal:true}).decode(buf); } catch(e){ return new TextDecoder('windows-1252').decode(buf); } }
+async function fetchText(url){ const r = await fetch(url, {cache:'no-cache'}); if(!r.ok) throw new Error(r.status); return decode(await r.arrayBuffer()); }
+async function loadRemote(){
+  const h = location.hostname;
+  if (/\.github\.io$/.test(h)){
+    const owner = h.split('.')[0], seg = location.pathname.split('/').filter(Boolean);
+    const repo = seg.length && !/\.html?$/.test(seg[0]) ? seg[0] : h;
+    try{
+      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/tunes`, {cache:'no-cache'});
+      if (r.ok){
+        const list = (await r.json()).filter(f => f.type==='file' && /\.(bww|bmw)$/i.test(f.name));
+        const files = (await Promise.all(list.map(async f => { try { return {file:f.name, text: await fetchText('tunes/'+encodeURIComponent(f.name))}; } catch(e){ return null; } }))).filter(Boolean);
+        if (files.length) return {files, src:'srcGit'};
+      }
+    }catch(e){}
+  }
+  try{
+    const names = await (await fetch('tunes/index.json', {cache:'no-cache'})).json();
+    const files = (await Promise.all(names.map(async n => { try{ return {file:n, text: await fetchText('tunes/'+encodeURIComponent(n))}; }catch(e){ return null; } }))).filter(Boolean);
+    if (files.length) return {files, src:'srcFolder'};
+  }catch(e){}
+  return null;
+}
+function buildLibrary(baseFiles, localFiles){
+  LIB_DUPES = []; LIB_ERRORS = [];
+  const byKey = new Map();
+  const add = (f, source) => {
+    let tune; try { tune = BWW.parse(f.text, f.file); } catch(e){ LIB_ERRORS.push(f.file); return; }
+    const intro = BWW.intro(tune, S.bars);
+    if (!intro.bars.length){ LIB_ERRORS.push(f.file); return; }
+    const key = normTitle(tune.title) || normTitle(f.file);
+    const item = { id:key, title:tune.title, type:tune.type, ts:tune.tsLabel, meter:meterOf(tune), file:f.file, source, tune, intro, size:f.text.length, sig: BWW.signature(intro) };
+    const prev = byKey.get(key);
+    if (prev){
+      const better = (!!item.type - !!prev.type) || (item.size - prev.size);
+      const keepNew = (source==='local' && prev.source!=='local') || (source===prev.source && better > 0);
+      LIB_DUPES.push(keepNew ? prev.file : item.file);
+      if (keepNew) byKey.set(key, item);
+    } else byKey.set(key, item);
+  };
+  baseFiles.forEach(f => add(f, 'base'));
+  localFiles.forEach(f => add(f, 'local'));
+  const sk = t => t.title.replace(/^(the|a)\s+/i,'').toLowerCase();
+  TUNES = [...byKey.values()].sort((a,b)=>sk(a).localeCompare(sk(b)));
+  // fill in missing types from duplicates' siblings is not possible; leave blank
+  updInfo();
+}
+const updInfo = () => { $('libInfo').textContent = tr('libInfo', {n:TUNES.length, b:S.bars}); };
+let BASE_FILES = EMBED;
+const localFiles = () => store.get('tmt_local', []);
+function rebuild(){ buildLibrary(BASE_FILES, localFiles()); }
+
+// ---------- notation (SVG) ----------
+const STEP = {LG:2, LA:3, B:4, C:5, D:6, E:7, F:8, HG:9, HA:10};
+const SHORT = {LG:'LG', LA:'LA', B:'B', C:'C', D:'D', E:'E', F:'F', HG:'HG', HA:'HA'};
+function renderIntro(t, opt={}){
+  const names = !!opt.names, showGrace = opt.grace !== false;
+  const g = 10, y0 = 46;                       // top staff line (F)
+  const yOf = st => y0 + (8 - st) * g/2;
+  const yBeam = y0 + 4*g + 20, yGr = y0 - 2.7*g;
+  const ink = 'currentColor';
+  let x = 12, out = [], idx = 0;
+  const notesAll = [];
+  // time signature
+  const ts = t.tune;
+  if (ts.tsLabel==='C' || ts.tsLabel==='¢') out.push(`<text x="${x+2}" y="${y0+2.75*g}" font-family="Georgia,serif" font-size="27" font-weight="700" fill="${ink}">C</text>`);
+  else { out.push(`<text x="${x+3}" y="${y0+1.85*g}" font-family="Georgia,serif" font-size="19" font-weight="700" fill="${ink}">${ts.tsNum}</text>`);
+         out.push(`<text x="${x+3}" y="${y0+3.85*g}" font-family="Georgia,serif" font-size="19" font-weight="700" fill="${ink}">${ts.tsDen}</text>`); }
+  x += 30;
+  const bars = [].concat(t.intro.pickup ? [t.intro.pickup] : [], t.intro.bars);
+  const barlines = [];
+  bars.forEach((bar, bi) => {
+    const groups = []; let open = null;
+    bar.forEach(n => {
+      // grace notes
+      const gn = showGrace ? n.grace : [];
+      const gx = [];
+      gn.forEach(p => { x += 6; gx.push(x); });
+      if (gn.length) x += 9;
+      const nx = x + 6;
+      const rec = {n, x:nx, y:yOf(STEP[n.p]), i:idx++, gx, gp:gn};
+      notesAll.push(rec);
+      if (n.base >= 8){
+        if (open){ open.push(rec); if (n.beam==='l'){ groups.push(open); open=null; } }
+        else if (n.beam==='r'){ open = [rec]; }
+        else groups.push([rec]);
+      } else { if (open){ groups.push(open); open=null; } groups.push([rec]); }
+      x = nx + 10 + n.dur * 105;
+    });
+    if (open) groups.push(open);
+    bar._groups = groups;
+    x += 4; barlines.push(x); x += 10;
+  });
+  const W = x;
+  // staff lines
+  for (let i=0;i<5;i++) out.push(`<line x1="4" x2="${W-10}" y1="${y0+i*g}" y2="${y0+i*g}" stroke="${ink}" stroke-width="1" opacity=".55"/>`);
+  out.push(`<line x1="4" x2="4" y1="${y0}" y2="${y0+4*g}" stroke="${ink}" stroke-width="1.2"/>`);
+  barlines.forEach((bx,k) => out.push(`<line x1="${bx}" x2="${bx}" y1="${y0}" y2="${y0+4*g}" stroke="${ink}" stroke-width="${k===barlines.length-1?2:1.2}"/>`));
+  // notes
+  const parts = [];
+  notesAll.forEach(r => {
+    const n = r.n, hollow = n.base <= 2, sx = r.x - 5.2;
+    let s = `<g class="n" data-i="${r.i}" data-p="${n.p}">`;
+    s += `<rect x="${r.x-9}" y="${y0-3*g}" width="18" height="${8.5*g}" fill="transparent"/>`;
+    if (n.p==='HA') s += `<line x1="${r.x-9}" x2="${r.x+9}" y1="${y0-g}" y2="${y0-g}" stroke="${ink}"/>`;
+    s += `<ellipse class="hd" cx="${r.x}" cy="${r.y}" rx="5.6" ry="4" transform="rotate(-22 ${r.x} ${r.y})" fill="${hollow?'none':ink}" stroke="${ink}" stroke-width="${hollow?1.6:1}"/>`;
+    if (n.base > 1) s += `<line x1="${sx}" x2="${sx}" y1="${r.y+1}" y2="${yBeam}" stroke="${ink}" stroke-width="1.3"/>`;
+    for (let d=0; d<n.dots; d++){ const st = STEP[n.p]; const dy = st%2===0 ? r.y - g/2 : r.y; s += `<circle cx="${r.x+9+d*5}" cy="${dy}" r="1.8" fill="${ink}"/>`; }
+    if (names) s += `<text class="nm" x="${r.x-2}" y="${yBeam+17}" text-anchor="middle" font-size="11" font-weight="600" fill="${ink}">${SHORT[n.p]}</text>`;
+    s += '</g>';
+    parts.push(s);
+    // grace notes
+    if (r.gp.length){
+      r.gp.forEach((p,k) => {
+        const gx = r.gx[k], gy = yOf(STEP[p]);
+        if (p==='HA') out.push(`<line x1="${gx-5}" x2="${gx+5}" y1="${y0-g}" y2="${y0-g}" stroke="${ink}" stroke-width=".8"/>`);
+        out.push(`<ellipse cx="${gx}" cy="${gy}" rx="3.2" ry="2.3" transform="rotate(-22 ${gx} ${gy})" fill="${ink}"/>`);
+        out.push(`<line x1="${gx+2.9}" x2="${gx+2.9}" y1="${gy-.5}" y2="${yGr}" stroke="${ink}" stroke-width=".8"/>`);
+      });
+      const fx = r.gx[0]+2.9, lx = r.gx[r.gx.length-1]+2.9;
+      if (r.gp.length > 1) for (let b=0;b<3;b++) out.push(`<line x1="${fx}" x2="${lx}" y1="${yGr+b*2.6}" y2="${yGr+b*2.6}" stroke="${ink}" stroke-width="1.4"/>`);
+      else for (let b=0;b<3;b++) out.push(`<path d="M${fx} ${yGr+b*3} l4 3.5" stroke="${ink}" stroke-width="1" fill="none"/>`);
+    }
+  });
+  // beams / flags
+  bars.forEach(bar => bar._groups.forEach(gr => {
+    const lv = r => r.n.base>=32?3 : r.n.base>=16?2 : r.n.base>=8?1 : 0;
+    if (gr.length === 1){
+      const r = gr[0], L = lv(r), sx = r.x-5.2;
+      for (let k=0;k<L;k++) out.push(`<path d="M${sx} ${yBeam-k*6} q 3 -4 8 -9" stroke="${ink}" stroke-width="1.6" fill="none"/>`);
+      return;
+    }
+    const xs = gr.map(r => r.x-5.2);
+    out.push(`<line x1="${xs[0]}" x2="${xs[xs.length-1]}" y1="${yBeam}" y2="${yBeam}" stroke="${ink}" stroke-width="3.4"/>`);
+    for (let L=2; L<=3; L++){
+      let k = 0;
+      while (k < gr.length){
+        if (lv(gr[k]) < L){ k++; continue; }
+        let e = k; while (e+1 < gr.length && lv(gr[e+1]) >= L) e++;
+        const yy = yBeam - (L-1)*6;
+        if (e > k) out.push(`<line x1="${xs[k]}" x2="${xs[e]}" y1="${yy}" y2="${yy}" stroke="${ink}" stroke-width="3.4"/>`);
+        else { const left = k>0 && (k===gr.length-1 || gr[k-1].n.dots); const x1 = xs[k], x2 = left ? x1-7 : x1+7;
+               out.push(`<line x1="${x1}" x2="${x2}" y1="${yy}" y2="${yy}" stroke="${ink}" stroke-width="3.4"/>`); }
+        k = e+1;
+      }
+    }
+    if (gr.some(r=>r.n.trip)){ const mx=(xs[0]+xs[xs.length-1])/2; out.push(`<text x="${mx}" y="${yBeam+(names?30:13)}" text-anchor="middle" font-size="10" font-style="italic" fill="${ink}">3</text>`); }
+  }));
+  // ties (above heads)
+  notesAll.forEach((r,k) => { if (r.n.tie && k>0){ const a = notesAll[k-1]; const ya = Math.min(a.y, r.y) - 7;
+    out.push(`<path d="M${a.x+3} ${ya} Q ${(a.x+r.x)/2} ${ya-9} ${r.x-3} ${ya}" stroke="${ink}" stroke-width="1.3" fill="none"/>`); } });
+  const H = yBeam + (names ? 30 : 14);
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="color:var(--ink)">${out.join('')}${parts.join('')}</svg>`;
+}
+function seqText(t){
+  const bars = [].concat(t.intro.pickup ? [t.intro.pickup] : [], t.intro.bars);
+  return bars.map(b => b.filter(n=>!n.tie).map(n=>SHORT[n.p]).join(' ')).join(' <span class="bar">|</span> ');
+}
+
+// ---------- sound (chanter synth, legato like a real chanter) ----------
+const RATIO = {LG:7/8, LA:1, B:9/8, C:5/4, D:4/3, E:3/2, F:5/3, HG:7/4, HA:2};
+const LA_HZ = 480;
+let AC = null, live = [], timers = [];
+function ac(){ if (!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); if (AC.state==='suspended') AC.resume(); return AC; }
+function stopAll(){
+  live.forEach(n => { try{ n.stop(); }catch(e){} }); live = [];
+  timers.forEach(clearTimeout); timers = [];
+  document.querySelectorAll('.n.on').forEach(e=>e.classList.remove('on'));
+}
+function voice(c, t0, t1, gainVal){
+  const o = c.createOscillator(); o.type = 'sawtooth';
+  const o2 = c.createOscillator(); o2.type = 'square';
+  const hp = c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value = 350;
+  const p1 = c.createBiquadFilter(); p1.type='peaking'; p1.frequency.value=1300; p1.Q.value=1.2; p1.gain.value=7;
+  const p2 = c.createBiquadFilter(); p2.type='peaking'; p2.frequency.value=3000; p2.Q.value=1.5; p2.gain.value=5;
+  const lp = c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 6500;
+  const g2 = c.createGain(); g2.gain.value = .25;
+  const g = c.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(gainVal, t0+.015);
+  g.gain.setValueAtTime(gainVal, t1-.03); g.gain.linearRampToValueAtTime(0, t1);
+  o.connect(hp); o2.connect(g2); g2.connect(hp); hp.connect(p1); p1.connect(p2); p2.connect(lp); lp.connect(g); g.connect(c.destination);
+  o.start(t0); o2.start(t0); o.stop(t1+.05); o2.stop(t1+.05); live.push(o, o2);
+  return f => (fq, t) => { o.frequency.setValueAtTime(fq, t); o2.frequency.setValueAtTime(fq, t); };
+}
+function drones(c, t0, t1){
+  [[LA_HZ/2,.045],[LA_HZ/4,.05]].forEach(([f,v]) => {
+    const o = c.createOscillator(); o.type='sawtooth'; o.frequency.value = f;
+    const lp = c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 1400;
+    const g = c.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(v,t0+.2); g.gain.setValueAtTime(v,t1-.15); g.gain.linearRampToValueAtTime(0,t1);
+    o.connect(lp); lp.connect(g); g.connect(c.destination); o.start(t0); o.stop(t1+.05); live.push(o);
+  });
+}
+function playIntro(t, svgRoot){
+  stopAll();
+  const c = ac(), tune = t.tune;
+  const beatWhole = (tune.tsDen===8 && tune.tsNum%3===0) ? 3/8 : 1/tune.tsDen;
+  const bpm = (tune.tempo || 80) * S.speed;
+  const secWhole = 60 / bpm / beatWhole;
+  const gd = 0.032;
+  const bars = [].concat(t.intro.pickup ? [t.intro.pickup] : [], t.intro.bars);
+  const notes = [].concat(...bars);
+  const lead = S.drones ? 0.6 : 0.05;
+  const start = c.currentTime + lead;
+  let tt = start; const ev = [];
+  notes.forEach((n, i) => {
+    const d = n.dur * secWhole;
+    if (!n.tie || !ev.length){
+      n.grace.forEach((p,k) => ev.push({t: tt + k*gd, f: LA_HZ*RATIO[p]}));
+      ev.push({t: tt + n.grace.length*gd, f: LA_HZ*RATIO[n.p]});
+    }
+    if (svgRoot){
+      const el = svgRoot.querySelector(`.n[data-i="${i}"]`);
+      if (el){ timers.push(setTimeout(()=>el.classList.add('on'), (tt - c.currentTime)*1000));
+               timers.push(setTimeout(()=>el.classList.remove('on'), (tt + d - c.currentTime)*1000 - 15)); }
+    }
+    tt += d;
+  });
+  const end = tt + 0.25;
+  if (S.drones) drones(c, start-0.55, end+0.1);
+  const set = voice(c, start, end, .2)();
+  ev.forEach(e => set(e.f, e.t));
+  return end - c.currentTime;
+}
+function playNote(p){
+  stopAll(); const c = ac(); const t0 = c.currentTime + .02;
+  const set = voice(c, t0, t0+.6, .2)(); set(LA_HZ*RATIO[p], t0);
+}
+
+// ---------- spaced repetition ----------
+const boxOf = (m,id) => (P.box[m] && P.box[m][id]) || 0;
+function grade(m, id, correct, chosenId){
+  P.box[m] = P.box[m] || {}; P.hist[id] = P.hist[id] || {};
+  const h = P.hist[id][m] = P.hist[id][m] || {ok:0,bad:0};
+  if (correct === true){ h.ok++; P.box[m][id] = Math.min(5, boxOf(m,id)+1); }
+  else if (correct === false){ h.bad++; P.box[m][id] = 1;
+    if (chosenId){ P.conf[id] = P.conf[id] || {}; P.conf[id][chosenId] = (P.conf[id][chosenId]||0)+1; } }
+  P.hist[id].last = Date.now();
+  saveP();
+}
+const recent = [];
+function pickTune(m){
+  let pool = TUNES;
+  if (S.hard){
+    const hard = TUNES.filter(t => { const b = boxOf(m,t.id); return b===1 || (P.conf[t.id] && Object.keys(P.conf[t.id]).length); });
+    if (hard.length >= 1) pool = hard;
+  }
+  const W = pool.map(t => { if (recent.includes(t.id) && pool.length > 3) return 0; const b = boxOf(m,t.id); return b===0 ? 3 : Math.pow(2, 5-b) / 4; });
+  let r = Math.random() * W.reduce((a,b)=>a+b,0);
+  for (let i=0;i<pool.length;i++){ r -= W[i]; if (r <= 0) return pool[i]; }
+  return pool[pool.length-1];
+}
+function lev(a, b){ a=a.split(' '); b=b.split(' '); const d = Array.from({length:a.length+1},(_,i)=>[i]); for(let j=1;j<=b.length;j++) d[0][j]=j;
+  for (let i=1;i<=a.length;i++) for (let j=1;j<=b.length;j++) d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[a.length][b.length]; }
+function similarity(x, y){ const a = x.sig.split(' ').slice(0,10).join(' '), b = y.sig.split(' ').slice(0,10).join(' ');
+  return 1 - lev(a,b) / Math.max(a.split(' ').length, b.split(' ').length); }
+function distractors(t){
+  const others = TUNES.filter(o => o.id !== t.id);
+  const conf = P.conf[t.id] || {};
+  const scored = others.map(o => ({o, s: similarity(t,o) + (o.ts===t.ts?.15:0) + (conf[o.id]?1:0) + ((P.conf[o.id]||{})[t.id]?.5:0) + Math.random()*.35 }));
+  scored.sort((a,b)=>b.s-a.s);
+  // 2 "hard" distractors + 1 random for variety
+  const pick = scored.slice(0,2).map(x=>x.o);
+  const rest = others.filter(o => !pick.includes(o));
+  if (rest.length) pick.push(rest[Math.floor(Math.random()*rest.length)]);
+  return pick.slice(0, Math.min(3, others.length));
+}
+const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+
+
+// ---------- practice UI ----------
+let sess = {n:0, ok:0, streak:0}, curQ = null;
+function updSess(){ $('sess').textContent = tr('sess', {ok:sess.ok, n:sess.n}); $('streak').textContent = sess.streak>=3 ? tr('streak', {n:sess.streak}) : ''; }
+function staffBox(t, names, id){ return `<div class="staff" id="${id}">${renderIntro(t,{names, grace:S.grace})}</div>`; }
+function wireStaff(id){ const box = $(id); if (box) box.querySelectorAll('.n').forEach(el => el.addEventListener('click', () => playNote(el.dataset.p))); }
+function revealHTML(t, id='revStaff', withTitle=true){
+  return `<div class="reveal">
+    ${withTitle ? `<h3>${esc(t.title)}</h3><div class="meta">${esc([t.type, tsShow(t)].filter(Boolean).join(' · '))}</div>` : ''}
+    ${staffBox(t, true, id)}
+    <div class="seq">${seqText(t)}</div>
+    <div class="row"><button class="btn primary" data-play="${id}">${tr('listen')}</button><span class="hint">${tr('tapNote')}</span></div>
+  </div>`;
+}
+function wireReveal(t, autoplay, id='revStaff'){
+  wireStaff(id);
+  const btn = document.querySelector(`[data-play="${id}"]`);
+  const play = () => playIntro(t, $(id));
+  if (btn) btn.onclick = play;
+  if (autoplay) play();
+}
+function nextQ(){
+  stopAll();
+  const m = S.mode, card = $('qcard');
+  if (TUNES.length < 2){ card.innerHTML = `<p>${tr('need2')}</p>`; return; }
+  const t = pickTune(m);
+  curQ = t;
+  recent.push(t.id); if (recent.length > 3) recent.shift();
+  if (m === 'recall') return recallQ(t);
+  if (m === 'meter') return meterQ(t);
+  const opts = shuffle([t, ...distractors(t)]);
+  let top = '';
+  if (m === 'audio') top = `<p class="prompt">${tr('pAudio',{b:S.bars})}</p><button class="big-play" id="qPlay">${tr('playIntro')}</button>`;
+  else top = `<p class="prompt">${m==='combo' ? tr('pCombo') : tr('pVisual')}</p>${staffBox(t, false, 'qStaff')}`;
+  card.innerHTML = `${top}<div class="opts">${opts.map(o => `<button class="opt" data-id="${o.id}">${esc(o.title)}</button>`).join('')}</div><div id="qRes"></div>`;
+  if (m === 'audio'){ $('qPlay').onclick = () => playIntro(t, null); setTimeout(()=>playIntro(t,null), 150); }
+  card.querySelectorAll('.opt').forEach(b => b.onclick = () => answer(t, b.dataset.id, m));
+}
+function scoreSess(ok){ sess.n++; if (ok){ sess.ok++; sess.streak++; } else sess.streak = 0; updSess(); }
+function answer(t, chosen, m){
+  const card = $('qcard'), ok = chosen === t.id;
+  card.querySelectorAll('.opt').forEach(b => { b.disabled = true; if (b.dataset.id===t.id) b.classList.add('ok'); else if (b.dataset.id===chosen) b.classList.add('bad'); });
+  grade(m, t.id, ok, ok ? null : chosen); scoreSess(ok);
+  const wrong = TUNES.find(x => x.id===chosen);
+  let html = `<div class="fb ${ok?'ok':'bad'}">${ok ? tr('ok') : tr('bad')}</div>`;
+  if (m !== 'audio' && $('qStaff')) $('qStaff').remove();
+  html += revealHTML(t);
+  if (!ok && wrong) html += `<div class="card" style="margin-top:12px"><div class="meta">${tr('yourPick')}</div><h3 style="font:700 16px Georgia,serif;margin:2px 0">${esc(wrong.title)}</h3>${revealHTML(wrong,'wrongStaff',false)}</div>`;
+  html += `<div class="row" style="margin-top:12px"><button class="btn primary" id="qNext">${tr('next')}</button></div>`;
+  $('qRes').innerHTML = html;
+  wireReveal(t, m !== 'audio');
+  if (wrong && !ok) wireReveal(wrong, false, 'wrongStaff');
+  $('qNext').onclick = nextQ;
+  $('qRes').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function recallQ(t){
+  const card = $('qcard');
+  card.innerHTML = `<p class="prompt">${tr('pRecall',{b:S.bars})}</p>
+    <div class="recall-title">${esc(t.title)}</div><div class="center hint">${esc(t.type||'')}</div>
+    <div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="rShow">${tr('showStart')}</button></div><div id="qRes"></div>`;
+  $('rShow').onclick = () => {
+    $('rShow').parentElement.remove();
+    $('qRes').innerHTML = `<div class="meta center">${esc(tsShow(t))}</div>` + revealHTML(t,'revStaff',false) +
+      `<p class="prompt" style="margin-top:12px">${tr('didYou')}</p><div class="row"><button class="btn" data-g="1">${tr('gYes')}</button><button class="btn" data-g="0">${tr('gMaybe')}</button><button class="btn" data-g="-1">${tr('gNo')}</button></div>`;
+    wireReveal(t, true);
+    $('qRes').querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
+      const g = +b.dataset.g; grade('recall', t.id, g===1 ? true : g===-1 ? false : null); scoreSess(g===1); nextQ();
+    });
+  };
+}
+const METERS_BASE = ['2/4','3/4','4/4','6/8'];
+function meterQ(t){
+  const card = $('qcard');
+  const present = new Set(METERS_BASE.concat(TUNES.map(x=>x.meter)));
+  const order = ['2/2','2/4','3/4','4/4','6/8','9/8','12/8'];
+  const opts = [...present].sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+  card.innerHTML = `<p class="prompt">${tr('pMeter')}</p><button class="big-play" id="qPlay">${tr('playIntro')}</button>
+    <div class="opts meter-opts">${opts.map(o => `<button class="opt" data-ts="${o}">${o}</button>`).join('')}</div><div id="qRes"></div>`;
+  $('qPlay').onclick = () => playIntro(t, null); setTimeout(()=>playIntro(t,null), 150);
+  card.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    const ok = b.dataset.ts === t.meter;
+    card.querySelectorAll('.opt').forEach(x => { x.disabled = true; if (x.dataset.ts===t.meter) x.classList.add('ok'); else if (x===b) x.classList.add('bad'); });
+    grade('meter', t.id, ok); scoreSess(ok);
+    const tip = tr('tip_'+t.meter.replace('/',''));
+    $('qRes').innerHTML = `<div class="fb ${ok?'ok':'bad'}">${ok ? tr('okMeter',{ts:t.meter}) : tr('badMeter',{ts:t.meter})}</div><div class="tip">${esc(tip)}</div>` + revealHTML(t) +
+      `<div class="row" style="margin-top:12px"><button class="btn primary" id="qNext">${tr('next')}</button></div>`;
+    wireReveal(t, false); $('qNext').onclick = nextQ;
+    $('qRes').scrollIntoView({behavior:'smooth', block:'nearest'});
+  });
+}
+
+// ---------- repertoire UI ----------
+let libFilter = '', libType = '', libOpen = null;
+function renderLibrary(){
+  $('libSearch').placeholder = tr('search');
+  const types = [...new Set(TUNES.map(t => t.type || tr('other')))].sort();
+  $('libChips').innerHTML = [`<button data-ty="" class="${libType===''?'on':''}">${tr('all')} (${TUNES.length})</button>`]
+    .concat(types.map(ty => `<button data-ty="${esc(ty)}" class="${libType===ty?'on':''}">${esc(ty)} (${TUNES.filter(t=>(t.type||tr('other'))===ty).length})</button>`)).join('');
+  $('libChips').querySelectorAll('button').forEach(b => b.onclick = () => { libType = b.dataset.ty; renderLibrary(); });
+  const q = libFilter.toLowerCase();
+  const list = TUNES.filter(t => (!libType || (t.type||tr('other'))===libType) && (!q || t.title.toLowerCase().includes(q)));
+  const groups = {};
+  list.forEach(t => (groups[t.type || tr('other')] = groups[t.type || tr('other')] || []).push(t));
+  $('libList').innerHTML = Object.keys(groups).sort().map(g => `<div class="grp-h">${esc(g)}</div>` + groups[g].map(t => `
+    <div class="lib-item ${libOpen===t.id?'open':''}" data-id="${t.id}"><div><div class="t">${esc(t.title)}</div><div class="sq">${tsShow(t)} · ${t.sig.split(' ').slice(0,8).join(' ')}…</div></div>${t.source==='local' ? `<span class="pill local">${tr('local')}</span>` : ''}</div>
+    ${libOpen===t.id ? `<div class="lib-detail">${revealHTML(t,'libStaff',false)}<p class="hint">${tr('file')}: ${esc(t.file)}</p>${t.source==='local' ? `<button class="btn small" id="delLocal">${tr('removeLocal')}</button>` : ''}</div>` : ''}`).join('')).join('');
+  $('libList').querySelectorAll('.lib-item').forEach(el => el.onclick = () => { stopAll(); libOpen = libOpen===el.dataset.id ? null : el.dataset.id; renderLibrary(); });
+  if (libOpen){ const t = TUNES.find(x=>x.id===libOpen); if (t){ wireReveal(t, false, 'libStaff');
+    if ($('delLocal')) $('delLocal').onclick = () => { store.set('tmt_local', localFiles().filter(f => f.file !== t.file)); libOpen=null; rebuild(); renderLibrary(); }; } }
+  $('libSource').innerHTML = `${tr('src')}: ${esc(tr(LIB_SRC))}.` +
+    (LIB_DUPES.length ? ` ${tr('dupes')}: ${LIB_DUPES.map(esc).join(', ')}.` : '') +
+    (LIB_ERRORS.length ? ` <span class="err">${tr('errs')}: ${LIB_ERRORS.map(esc).join(', ')}.</span>` : '');
+}
+$('libSearch').oninput = e => { libFilter = e.target.value; renderLibrary(); };
+$('fileIn').onchange = async e => {
+  const files = [...e.target.files]; const cur = localFiles(); const msgs = [];
+  for (const f of files){
+    const text = decode(await f.arrayBuffer());
+    try { const t = BWW.parse(text, f.name); if (!BWW.intro(t, S.bars).bars.length) throw 0;
+          const i = cur.findIndex(x=>x.file===f.name); if (i>=0) cur.splice(i,1); cur.push({file:f.name, text}); msgs.push('✓ '+t.title); }
+    catch(err){ msgs.push(`✗ ${f.name} (${tr('unreadable')})`); }
+  }
+  store.set('tmt_local', cur); rebuild(); renderLibrary(); $('addMsg').textContent = msgs.join(' · '); e.target.value = '';
+};
+
+// ---------- stats UI ----------
+const MODES = ['audio','visual','combo','recall','meter'];
+function renderStats(){
+  let ok=0, bad=0; const byT = TUNES.map(t => { const h = P.hist[t.id]||{}; let o=0,b=0; MODES.forEach(m => { if(h[m]){ o+=h[m].ok; b+=h[m].bad; } }); ok+=o; bad+=b; return {t,o,b}; });
+  const mastered = TUNES.filter(t => ['audio','visual'].every(m => boxOf(m,t.id) >= 3)).length;
+  $('kpis').innerHTML = `<div class="kpi"><b>${ok+bad ? Math.round(100*ok/(ok+bad)) : 0}%</b><span>${tr('kAcc')}</span></div><div class="kpi"><b>${ok+bad}</b><span>${tr('kAns')}</span></div><div class="kpi"><b>${mastered}/${TUNES.length}</b><span>${tr('kMast')}</span></div>`;
+  const pairs = []; for (const a in P.conf) for (const b in P.conf[a]) pairs.push({a, b, n:P.conf[a][b]});
+  pairs.sort((x,y)=>y.n-x.n);
+  const T = id => TUNES.find(t=>t.id===id);
+  const vp = pairs.filter(p=>T(p.a)&&T(p.b)).slice(0,8);
+  $('confList').innerHTML = vp.length ? '<table class="st">' + vp.map(p => `<tr><td><b>${esc(T(p.a).title)}</b><br><span class="hint">${tr('confWith',{x:esc(T(p.b).title)})}</span></td><td class="num">${p.n}×</td></tr>`).join('') + '</table>' : `<p class="hint">${tr('noConf')}</p>`;
+  const sims = []; for (let i=0;i<TUNES.length;i++) for (let j=i+1;j<TUNES.length;j++) sims.push({a:TUNES[i], b:TUNES[j], s:similarity(TUNES[i],TUNES[j])});
+  sims.sort((x,y)=>y.s-x.s);
+  $('simList').innerHTML = '<table class="st">' + sims.slice(0,6).map(p => `<tr><td><b>${esc(p.a.title)}</b> / <b>${esc(p.b.title)}</b><div class="seq" style="font-size:12.5px">${seqText(p.a)}<br>${seqText(p.b)}</div></td><td class="num">${Math.round(p.s*100)}%</td></tr>`).join('') + '</table>';
+  byT.sort((x,y) => ((x.o+x.b)? x.o/(x.o+x.b) : 2) - ((y.o+y.b)? y.o/(y.o+y.b) : 2));
+  $('perTune').innerHTML = byT.map(({t,o,b}) => { const tot=o+b, pc = tot? Math.round(100*o/tot):null;
+    return `<tr><td>${esc(t.title)}</td><td style="width:90px"><div class="bar-wrap"><div class="bar-fill" style="width:${pc||0}%"></div></div></td><td class="num">${tot? pc+'% · '+tot : '—'}</td></tr>`; }).join('');
+}
+
+// ---------- settings / install / share ----------
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; ['installBtn','installBtn2'].forEach(id => $(id).classList.remove('hidden')); });
+window.addEventListener('appinstalled', () => ['installBtn','installBtn2'].forEach(id => $(id).classList.add('hidden')));
+const doInstall = async () => { if (!deferredInstall) return; deferredInstall.prompt(); try{ await deferredInstall.userChoice; }catch(e){} deferredInstall = null; ['installBtn','installBtn2'].forEach(id => $(id).classList.add('hidden')); };
+$('installBtn').onclick = doInstall; $('installBtn2').onclick = doInstall;
+$('shareBtn').onclick = async () => {
+  const data = {title:'Tune Memory Trainer', text: tr('shareText'), url: APP_URL};
+  try { if (navigator.share){ await navigator.share(data); return; } } catch(e){ return; }
+  try { await navigator.clipboard.writeText(`${tr('shareText')} ${APP_URL}`); $('shareBtn').textContent = '✓ ' + tr('copied'); setTimeout(()=>$('shareBtn').textContent = tr('share'), 2500); } catch(e){ $('shareBtn').textContent = APP_URL; }
+};
+let resetArm = 0;
+function applyLang(){
+  document.documentElement.lang = S.lang;
+  document.querySelectorAll('[data-t]').forEach(el => el.textContent = tr(el.dataset.t));
+  $('modes').querySelectorAll('button').forEach(b => b.textContent = tr('m_'+b.dataset.m));
+  $('setBars').options[0].textContent = tr('bars2'); $('setBars').options[1].textContent = tr('bars4');
+  $('installBtn').textContent = tr('install'); $('installBtn2').textContent = tr('install');
+  $('shareBtn').textContent = tr('share'); $('resetStats').textContent = tr('reset');
+  $('langSel').value = S.lang; $('setLang').value = S.lang;
+  updInfo(); updSess();
+}
+function setLang(l){ S.lang = l; saveS(); applyLang(); const v = document.querySelector('#tabs button.on').dataset.v;
+  if (v==='library') renderLibrary(); else if (v==='stats') renderStats(); else if (curQ && !document.querySelector('#qRes .fb, #qRes .reveal')) nextQ(); }
+function initSettings(){
+  $('setBars').value = S.bars; $('setSpeed').value = S.speed; $('speedVal').textContent = Math.round(S.speed*100)+'%';
+  $('setDrones').checked = S.drones; $('setGrace').checked = S.grace; $('setHard').checked = S.hard;
+  $('setBars').onchange = e => { S.bars = +e.target.value; saveS(); rebuild(); nextQ(); };
+  $('setSpeed').oninput = e => { S.speed = +e.target.value; $('speedVal').textContent = Math.round(S.speed*100)+'%'; saveS(); };
+  $('setDrones').onchange = e => { S.drones = e.target.checked; saveS(); };
+  $('setGrace').onchange = e => { S.grace = e.target.checked; saveS(); };
+  $('setHard').onchange = e => { S.hard = e.target.checked; saveS(); };
+  $('langSel').onchange = e => setLang(e.target.value);
+  $('setLang').onchange = e => setLang(e.target.value);
+  $('resetStats').onclick = () => {
+    const b = $('resetStats');
+    if (Date.now()-resetArm < 4000){ P = {box:{}, hist:{}, conf:{}}; saveP(); b.textContent = tr('reset'); resetArm = 0; return; }
+    resetArm = Date.now(); b.textContent = tr('resetConfirm'); setTimeout(()=>b.textContent = tr('reset'), 4000);
+  };
+}
+
+// ---------- navigation ----------
+$('tabs').querySelectorAll('button').forEach(b => b.onclick = () => {
+  stopAll();
+  $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x===b));
+  ['practice','library','stats','settings'].forEach(v => $('v-'+v).classList.toggle('hidden', v!==b.dataset.v));
+  if (b.dataset.v==='library') renderLibrary();
+  if (b.dataset.v==='stats') renderStats();
+  window.scrollTo(0,0);
+});
+$('modes').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.m===S.mode); b.onclick = () => {
+  S.mode = b.dataset.m; saveS(); $('modes').querySelectorAll('button').forEach(x => x.classList.toggle('on', x===b)); nextQ(); }; });
+
+// ---------- start ----------
+(async () => {
+  initSettings(); rebuild(); applyLang(); nextQ();
+  const remote = await loadRemote();
+  if (remote){ BASE_FILES = remote.files; LIB_SRC = remote.src; rebuild(); if (!sess.n) nextQ(); }
+  if ('serviceWorker' in navigator && /^https:/.test(location.protocol) && /\.github\.io$/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
